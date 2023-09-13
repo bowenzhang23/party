@@ -1,0 +1,1 @@
+export PYTHONPATH=$PYTHONPATH:$( readlink -f ./src/party )
