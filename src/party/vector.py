@@ -44,6 +44,31 @@ def rapidity(beta: Any) -> np.float64:
     return np.arctanh(beta)
 
 
+def eta2rapidity(eta: Any, m: Any, p: Any) -> np.float64:
+    """y = arctanh(1/sqrt(1+m^2/p^2)tanh(n))
+
+    Args:
+        eta (Any): pseudo-rapidity
+
+    Returns:
+        np.float64: actual rapidity
+    """
+    return np.arctanh(1 / np.sqrt(1 + m ^ 2 / p ^ 2) * np.tanh(eta))
+
+
+def theta2eta(theta: Any) -> np.float64:
+    """azimuth angle to pseudo-rapidity, i.e. definition of eta:
+    n = -ln(tan(t/2))
+
+    Args:
+        theta (Any): azimuth angle
+
+    Returns:
+        _type_: pseudo-rapidity
+    """
+    return -np.log(np.tan(theta * 0.5))
+
+
 # duality
 class Duality(object):
     """Vector dual space type
@@ -175,15 +200,34 @@ class FourVector(object):
         """
         return self * self
 
-    def rotate(self, angle: Any, axis: int) -> Any:
-        """spatial rotation
+    def rotate(self, angle: Any, param: Any) -> Any:
+        if isinstance(param, tuple):
+            return self._rotate_vector(angle, param)
+        else:
+            return self._rotate_axis(angle, param)
+
+    def boost(self, velocity: Any, param: Any) -> Any:
+        if isinstance(param, tuple):
+            return self._boost_vector(velocity, param)
+        else:
+            return self._boost_axis(velocity, param)
+
+    def boost_to_zmf(self) -> Any:
+        E, p = self.txyz[0], self.txyz[1:]
+        b: np.ndarray = p / E
+        v: np.ndarray = np.linalg.norm(b)
+        return self.boost(v, tuple(b.tolist()))
+
+    def _rotate_axis(self, angle: Any, axis: int) -> Any:
+        """spatial rotation along a given axis
+        x, y, z = 1, 2, 3
 
         Args:
             angle (Any): unit is radian
             axis (int): which axis to rotate on
 
         Returns:
-            Any: transformed four vector
+            Any: transformed four vector and rotation matrix
         """
         # passive transformation
         assert (
@@ -193,9 +237,9 @@ class FourVector(object):
         cos: np.float64 = np.cos(angle, dtype=np.float64)
         sin: np.float64 = np.sin(angle, dtype=np.float64)
         i, j = (i if i != 0 else 3 for i in [(axis + 1) % 3, (axis + 2) % 3])
-        a_uv[i][i] = a_uv[j][j] = cos
-        a_uv[i][j] = a_uv[j][i] = sin
-        a_uv[j][i] *= -1
+        a_uv[i, i] = a_uv[j, j] = cos
+        a_uv[i, j] = a_uv[j, i] = sin
+        a_uv[j, i] *= -1
         out: FourVector = self._copy()
         out.txyz = a_uv @ out.txyz
         out.label = (
@@ -203,15 +247,61 @@ class FourVector(object):
         )
         return out, a_uv
 
-    def boost(self, velocity: Any, axis: int) -> Any:
-        """Lorentz boost
+    def _rotate_vector(self, angle: Any, u: tuple) -> Any:
+        """spatial rotation along a given direction
+
+        Args:
+            angle (Any): counter-clock angle, axis point to observer
+            u (tuple): direction
+
+        Returns:
+            Any: transformed four vector and rotation matrix
+
+        Reference:
+            https://en.wikipedia.org/wiki/Rotation_matrix#cite_ref-5
+        """
+        assert len(u) == 3, "must provide 3-D vector!"
+        un: np.ndarray = np.array(u, dtype=np.float64)
+        un = un / np.linalg.norm(un, keepdims=True)
+        ux, uy, uz = un[0], un[1], un[2]
+        cos: np.float64 = np.cos(angle, dtype=np.float64)
+        sin: np.float64 = np.sin(angle, dtype=np.float64)
+        a_uv: np.ndarray = np.diag([1.0, 1.0, 1.0, 1.0]).astype(np.float64)
+        a_uv[1:, 1:] = np.array(
+            [
+                [
+                    cos + ux * ux * (1 - cos),
+                    ux * uy * (1 - cos) + uz * sin,
+                    ux * uz * (1 - cos) - uy * sin,
+                ],
+                [
+                    uy * ux * (1 - cos) - uz * sin,
+                    cos + uy * uy * (1 - cos),
+                    uy * uz * (1 - cos) + uy * sin,
+                ],
+                [
+                    uz * ux * (1 - cos) + uy * sin,
+                    ux * uy * (1 - cos) - ux * sin,
+                    cos + uz * uz * (1 - cos),
+                ],
+            ],
+            dtype=np.float64,
+        )
+        out: FourVector = self._copy()
+        out.txyz = a_uv @ out.txyz
+        out.label = f"rotate({out.label}, axis={u}, degree={angle * 180. / np.pi:.3f})"
+        return out, a_uv
+
+    def _boost_axis(self, velocity: Any, axis: int) -> Any:
+        """Lorentz boost along a given axis
+        x, y, z = 1, 2, 3
 
         Args:
             velocity (Any): velocity
             axis (int): which axis to boost on
 
         Returns:
-            np.float64: transformed four vector
+            Any: transformed four vector and Lorentz transformation matrix
         """
         assert velocity > -1 and velocity < 1, "must be lower than the speed of light"
         assert (
@@ -219,13 +309,82 @@ class FourVector(object):
         ), "must rotate along x (1), y (2), z (3)"
         a_uv: np.ndarray = np.diag([1.0, 1.0, 1.0, 1.0]).astype(np.float64)
         b, y = velocity, gamma(velocity)
-        a_uv[0][0] = a_uv[axis][axis] = y
-        a_uv[0][3] = a_uv[3][0] = -y * b
+        a_uv[0, 0] = a_uv[axis, axis] = y
+        a_uv[0, 3] = a_uv[3, 0] = -y * b
         out: FourVector = self._copy()
         out.txyz = a_uv @ out.txyz
         out.label = f"boost({out.label}, axis={axis}, velocity={velocity:.3f})"
         return out, a_uv
 
+    def _boost_vector(self, velocity: Any, u: tuple):
+        """Lorentz boost along a given direction
 
-# class FourMomentum(FourVector):
-#     def __init__(self, vars: Dict[str, Any]):
+        Args:
+            velocity (Any): velocity
+            u (tuple): direction
+
+        Returns:
+            Any: transformed four vector and Lorentz transformation matrix
+
+        Reference:
+            https://en.wikipedia.org/wiki/Lorentz_transformation
+        """
+        assert len(u) == 3, "must provide 3-D vector!"
+        un: np.ndarray = np.array(u, dtype=np.float64)
+        v = un / np.linalg.norm(un, keepdims=True) * velocity
+        v2 = velocity**2
+        vx, vy, vz = v[0], v[1], v[2]
+        a_uv: np.ndarray = np.diag([1.0, 1.0, 1.0, 1.0]).astype(np.float64)
+        y = gamma(velocity)
+        a_uv[0][0] = y
+        a_uv[0, 1:] = -y * v
+        a_uv[1:, 0] = -y * v
+        a_uv[1:, 1:] += (y - 1) * np.array(
+            [
+                [vx * vx / v2, vx * vy / v2, vx * vz / v2],
+                [vy * vx / v2, vy * vy / v2, vy * vz / v2],
+                [vz * vx / v2, vz * vy / v2, vz * vz / v2],
+            ],
+            dtype=np.float64,
+        )
+        out: FourVector = self._copy()
+        out.txyz = a_uv @ out.txyz
+        out.label = f"boost({out.label}, axis={u}, velocity={velocity:.3f})"
+        return out, a_uv
+
+
+class FourMomentum(FourVector):
+    def __init__(
+        self,
+        vars: Dict[str, Any],
+        label: str = "",
+        duality: Duality = Duality.Contravariant,
+    ):
+        """Four momentum can be
+        - without rapidity
+            - (E, px, py, pz) -> the standard p4
+            - (m, px, py, pz) -> p^2 = m^2, i.e. E^2 = p^2 + m^2, take the positive E
+            - (E, pt, phi, pz) -> px = pt*cos(phi), py = pt*sin(phi)
+            - (m, pt, phi, pz) -> px = pt*cos(phi), py = pt*sin(phi)
+        - with rapidity (by convention, always boost along z-direction).
+            - (E, px, py, rapidity) -> pz from tanhy = b = pz / E
+            - (m, px, py, rapidity) -> pz from sinhy = yb = pz / m
+            - (E, pt, phi, rapidity) -> pz from tanhy = b = pz / E
+            - (m, pt, phi, rapidity) -> pz from sinhy = yb = pz / m
+
+        Notes:
+            rapidity (y) <-> eta (n) <-> theta (t)
+            y = arctanh(1/sqrt(1+m^2/p^2)tanh(n))
+            n = -ln(tan(t/2))
+
+        Args:
+            vars (Dict[str, Any]): _description_
+        """
+        for var in vars.keys():
+            if var not in varname_set:
+                raise RuntimeError(
+                    f"{var} is not supported, cannot construct FourMomentum!"
+                )
+
+        if {"E", "m"}.intersection(vars.keys()) == set():
+            raise RuntimeError(f"must have at least one of E and m!")
