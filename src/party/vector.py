@@ -44,16 +44,17 @@ def rapidity(beta: Any) -> np.float64:
     return np.arctanh(beta)
 
 
-def eta2rapidity(eta: Any, m: Any, p: Any) -> np.float64:
-    """y = arctanh(1/sqrt(1+m^2/p^2)tanh(n))
+def pz_from_pt_eta(pt: Any, eta: Any) -> np.float64:
+    """See README.md: Calculating pz with $eta$ ($theta$)
 
     Args:
-        eta (Any): pseudo-rapidity
+        pt (Any): transverse momentum
+        eta (Any): pseudorapidity from zenith angle theta (w.r.t. z-axis)
 
     Returns:
-        np.float64: actual rapidity
+        np.float64: momentum in z-direction
     """
-    return np.arctanh(1 / np.sqrt(1 + m ^ 2 / p ^ 2) * np.tanh(eta))
+    return pt * np.sinh(eta)
 
 
 def theta2eta(theta: Any) -> np.float64:
@@ -152,19 +153,53 @@ class FourVector(object):
         res.txyz: np.ndarray = fun_op(other_value)
         return res
 
+    def __neg__(self) -> Any:
+        """negative = -1 * self
+
+        Returns:
+            Any: p -> -p
+        """
+        return -1 * self
+
     def __add__(self, other: Any) -> Any:
+        """add = self + other
+
+        Args:
+            other (Any): another four vector
+
+        Returns:
+            Any: new four vector
+        """
         assert isinstance(other, FourVector), "must add with FourVector"
         assert self.duality == other.duality, "must have same duality"
         return self._binary_op(other, "+", self.txyz.__add__)
 
     def __sub__(self, other: Any) -> Any:
+        """sub = self - other
+
+        Args:
+            other (Any): another four vector
+
+        Returns:
+            Any: new four vector
+        """
         assert isinstance(other, FourVector), "must subtract with FourVector"
         assert self.duality == other.duality, "must have same duality"
         return self._binary_op(other, "-", self.txyz.__sub__)
 
     def __mul__(self, other: Any) -> Any:
+        """sub = self * other, other can be vector (dot product) or scalar
+
+        Args:
+            other (Any): four vector or scalar
+
+        Returns:
+            Any: scalar or four vector
+        """
         if isinstance(other, FourVector):
             # dot product
+            if self.duality == other.duality:
+                other = other.dual_transform()
             res: np.float64 = self.txyz.dot(other.txyz)
         else:
             # scaler multiplication
@@ -175,6 +210,14 @@ class FourVector(object):
         return res
 
     def __rmul__(self, other: Any) -> Any:
+        """sub = other * self
+
+        Args:
+            other (Any): scalar
+
+        Returns:
+            Any: new four vector
+        """
         # scaler multiplication
         assert isinstance(
             other, (int, float, np.int64, np.float64)
@@ -194,9 +237,26 @@ class FourVector(object):
         dual.txyz: np.ndarray = g_uv @ self.txyz
         return dual
 
+    def opposite(self) -> Any:
+        """
+        Returns:
+            Any: opposite direction in space
+        """
+        opposite: FourVector = self._copy()
+        opposite.txyz[1:] *= -1
+        return opposite
+
+    def vector3(self) -> np.ndarray:
+        """
+        Returns:
+            np.ndarray: cloned 3-D space vector
+        """
+        return self.txyz[1:].copy()
+
     def square(self) -> np.float64:
         """
-        returns ||vector||^2
+        Returns:
+            np.float64: ||vector||^2
         """
         return self * self
 
@@ -213,6 +273,11 @@ class FourVector(object):
             return self._boost_axis(velocity, param)
 
     def boost_to_zmf(self) -> Any:
+        """Boost to zero mass frame
+
+        Returns:
+            Any: transformed vector
+        """
         E, p = self.txyz[0], self.txyz[1:]
         b: np.ndarray = p / E
         v: np.ndarray = np.linalg.norm(b)
@@ -360,25 +425,15 @@ class FourMomentum(FourVector):
         label: str = "",
         duality: Duality = Duality.Contravariant,
     ):
-        """Four momentum can be
-        - without rapidity
-            - (E, px, py, pz) -> the standard p4
-            - (m, px, py, pz) -> p^2 = m^2, i.e. E^2 = p^2 + m^2, take the positive E
-            - (E, pt, phi, pz) -> px = pt*cos(phi), py = pt*sin(phi)
-            - (m, pt, phi, pz) -> px = pt*cos(phi), py = pt*sin(phi)
-        - with rapidity (by convention, always boost along z-direction).
-            - (E, px, py, rapidity) -> pz from tanhy = b = pz / E
-            - (m, px, py, rapidity) -> pz from sinhy = yb = pz / m
-            - (E, pt, phi, rapidity) -> pz from tanhy = b = pz / E
-            - (m, pt, phi, rapidity) -> pz from sinhy = yb = pz / m
-
-        Notes:
-            rapidity (y) <-> eta (n) <-> theta (t)
-            y = arctanh(1/sqrt(1+m^2/p^2)tanh(n))
-            n = -ln(tan(t/2))
+        """Flexible four-momentum construction
 
         Args:
-            vars (Dict[str, Any]): _description_
+            vars (Dict[str, Any]): variable dict
+            label (str, optional): see FourVector. Defaults to "".
+            duality (Duality, optional): see FourVector. Defaults to Duality.Contravariant.
+
+        Raises:
+            RuntimeError: failed to construct FourMomentum
         """
         for var in vars.keys():
             if var not in varname_set:
@@ -386,5 +441,84 @@ class FourMomentum(FourVector):
                     f"{var} is not supported, cannot construct FourMomentum!"
                 )
 
-        if {"E", "m"}.intersection(vars.keys()) == set():
-            raise RuntimeError(f"must have at least one of E and m!")
+        if "pz" in vars.keys():
+            op_list = [self._get_pz, self._get_pt, self._get_emass]
+        elif "rapidity" in vars.keys():
+            op_list = [self._get_rapidity, self._get_pz, self._get_pt, self._get_emass]
+        elif "eta" in vars.keys() or "theta" in vars.keys():
+            op_list = [self._get_eta, self._get_pt, self._get_pz, self._get_emass]
+        else:
+            raise RuntimeError(f"Can not construct FourMomemtum given {vars.keys()}")
+
+        for op in op_list:
+            op(vars)
+
+        super().__init__(vars["E"], vars["px"], vars["py"], vars["pz"], label, duality)
+
+    def _get_pz(self, vars: Dict[str, Any]):
+        """Head, Leaf node
+
+        Args:
+            vars (Dict[str, Any]): vars
+        """
+        if "pz" in vars.keys():
+            pass
+        elif "eta" in vars.keys() and "pt" in vars.keys():
+            vars["pz"] = pz_from_pt_eta(vars["pt"], vars["eta"])
+        elif "rapidity" in vars.keys() and "E" in vars.keys():
+            vars["pz"] = vars["E"] * np.cosh(vars["rapidity"])
+        elif "rapidity" in vars.keys() and "m" in vars.keys():
+            vars["pz"] = vars["m"] * np.sinh(vars["rapidity"])
+        else:
+            raise RuntimeError("Pz can not be determined!")
+
+    def _get_rapidity(self, vars: Dict[str, Any]):
+        """Head node
+
+        Args:
+            vars (Dict[str, Any]): _description_
+        """
+        if "rapidity" in vars.keys():
+            pass
+
+    def _get_eta(self, vars: Dict[str, Any]):
+        """Head node
+
+        Args:
+            vars (Dict[str, Any]): _description_
+        """
+        if "eta" in vars.keys():
+            pass
+        elif "theta" in vars.keys():
+            vars["eta"] = theta2eta(vars["theta"])
+
+    def _get_pt(self, vars: Dict[str, Any]):
+        """Leaf node
+
+        Args:
+            vars (Dict[str, Any]): vars
+        """
+        if "px" in vars.keys() and "py" in vars.keys():
+            vars["pt"] = np.sqrt(vars["px"] ** 2 + vars["py"] ** 2)
+            vars["phi"] = np.arctan2(vars["py"], vars["px"])
+        elif "pt" in vars.keys() and "phi" in vars.keys():
+            vars["px"] = vars["pt"] * np.cos(vars["phi"])
+            vars["py"] = vars["pt"] * np.sin(vars["phi"])
+        else:
+            raise RuntimeError("Pt can not be determined!")
+
+    def _get_emass(self, vars: Dict[str, Any]):
+        """Leaf node
+
+        Args:
+            vars (Dict[str, Any]): vars
+        """
+        if "E" in vars.keys():
+            pass
+        elif "m" in vars.keys():
+            px, py, pz = vars["px"], vars["py"], vars["pz"]
+            p2: np.float64 = px**2 + py**2 + pz**2
+            m2 = vars["m"] ** 2
+            vars["E"] = np.sqrt(m2 + p2)
+        else:
+            raise RuntimeError("E can not be determined!")
