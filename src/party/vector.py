@@ -2,6 +2,12 @@ import numpy as np
 from typing import Any, List, Set, Dict, Callable
 
 
+__author__ = "Bowen Zhang"
+__copyright__ = "Copyright (C) 2023 Bowen Zhang"
+__license__ = "MIT License"
+__version__ = "0.1"
+
+
 # constants
 dim_spacetime: int = 4
 g_uv: np.ndarray = np.diag([1.0, -1.0, -1.0, -1.0]).astype(np.float64)
@@ -258,7 +264,7 @@ class FourVector(object):
         Returns:
             np.float64: ||vector||^2
         """
-        return self * self
+        return self * self._copy()
 
     def rotate(self, angle: Any, param: Any) -> Any:
         if isinstance(param, tuple):
