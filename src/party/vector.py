@@ -9,9 +9,9 @@ __version__ = "0.1"
 
 
 # constants
-dim_spacetime: int = 4
-g_uv: np.ndarray = np.diag([1.0, -1.0, -1.0, -1.0]).astype(np.float64)
-varname_set: Set[str] = (
+dim_spacetime = 4
+g_uv = np.diag([1.0, -1.0, -1.0, -1.0]).astype(np.float64)
+varname_set = (
     "E",
     "m",
     "px",
@@ -109,13 +109,13 @@ class FourVector(object):
             label (str, optional): label of the variable for display. Defaults to "".
             duality (Duality, optional): contra- or covariant. Defaults to Duality.Contravariant.
         """
-        contra: np.ndarray = np.array([t, x, y, z], dtype=np.float64)
+        contra = np.array([t, x, y, z], dtype=np.float64)
         if duality == Duality.Contravariant:
-            self.txyz: np.ndarray = contra
+            self.txyz = contra
         elif duality == Duality.Covariant:
-            self.txyz: np.ndarray = g_uv @ contra
-        self.label: str = label
-        self.duality: Duality = duality
+            self.txyz = g_uv @ contra
+        self.label = label
+        self.duality = duality
 
     @staticmethod
     def zero() -> Any:
@@ -127,9 +127,9 @@ class FourVector(object):
         return FourVector(*(0 for _ in range(dim_spacetime)))
 
     def __repr__(self) -> str:
-        greek: str = r"u"
-        label: str = self.label
-        list_view: List[float] = [round(i, 5) for i in self.txyz.tolist()]
+        greek = r"u"
+        label = self.label
+        list_view = [round(i, 5) for i in self.txyz.tolist()]
         if self.duality == Duality.Contravariant:
             return f"{label}^{greek} = {list_view}"
         elif self.duality == Duality.Covariant:
@@ -142,9 +142,9 @@ class FourVector(object):
 
     def _copy(self) -> Any:
         copy = FourVector.zero()
-        copy.txyz: np.ndarray = self.txyz
-        copy.label: str = self.label
-        copy.duality: Duality = self.duality
+        copy.txyz = self.txyz
+        copy.label = self.label
+        copy.duality = self.duality
         return copy
 
     def _binary_op(self, other: Any, op: str, fun_op: Callable) -> Any:
@@ -154,9 +154,9 @@ class FourVector(object):
             f"{op}"
             f"{other.label if hasattr(other, 'label') else other})"
         )
-        res.duality: Duality = self.duality
-        other_value: Any = other.txyz if hasattr(other, "txyz") else other
-        res.txyz: np.ndarray = fun_op(other_value)
+        res.duality = self.duality
+        other_value = other.txyz if hasattr(other, "txyz") else other
+        res.txyz = fun_op(other_value)
         return res
 
     def __neg__(self) -> Any:
@@ -206,13 +206,13 @@ class FourVector(object):
             # dot product
             if self.duality == other.duality:
                 other = other.dual_transform()
-            res: np.float64 = self.txyz.dot(other.txyz)
+            res = self.txyz.dot(other.txyz)
         else:
             # scaler multiplication
             assert isinstance(
                 other, (int, float, np.int64, np.float64)
             ), "must be int or float"
-            res: FourVector = self._binary_op(other, "x", self.txyz.__mul__)
+            res = self._binary_op(other, "x", self.txyz.__mul__)
         return res
 
     def __rmul__(self, other: Any) -> Any:
@@ -228,7 +228,6 @@ class FourVector(object):
         assert isinstance(
             other, (int, float, np.int64, np.float64)
         ), "must be int or float"
-        res: FourVector = FourVector.zero()
         return self._binary_op(other, "x", self.txyz.__rmul__)
 
     def dual_transform(self) -> Any:
@@ -237,10 +236,10 @@ class FourVector(object):
         Returns:
             Any: dual vector
         """
-        dual: FourVector = FourVector.zero()
-        dual.label: str = self.label
-        dual.duality: Duality = self.duality ^ 1
-        dual.txyz: np.ndarray = g_uv @ self.txyz
+        dual = FourVector.zero()
+        dual.label = self.label
+        dual.duality = self.duality ^ 1
+        dual.txyz = g_uv @ self.txyz
         return dual
 
     def opposite(self) -> Any:
@@ -248,7 +247,7 @@ class FourVector(object):
         Returns:
             Any: opposite direction in space
         """
-        opposite: FourVector = self._copy()
+        opposite = self._copy()
         opposite.txyz[1:] *= -1
         return opposite
 
@@ -285,8 +284,8 @@ class FourVector(object):
             Any: transformed vector
         """
         E, p = self.txyz[0], self.txyz[1:]
-        b: np.ndarray = p / E
-        v: np.ndarray = np.linalg.norm(b)
+        b = p / E
+        v = np.linalg.norm(b)
         return self.boost(v, tuple(b.tolist()))
 
     def _rotate_axis(self, angle: Any, axis: int) -> Any:
@@ -304,14 +303,14 @@ class FourVector(object):
         assert (
             axis > 0 and axis < dim_spacetime
         ), "must rotate along x (1), y (2), z (3)"
-        a_uv: np.ndarray = np.diag([1.0, 1.0, 1.0, 1.0]).astype(np.float64)
-        cos: np.float64 = np.cos(angle, dtype=np.float64)
-        sin: np.float64 = np.sin(angle, dtype=np.float64)
+        a_uv = np.diag([1.0, 1.0, 1.0, 1.0]).astype(np.float64)
+        cos = np.cos(angle, dtype=np.float64)
+        sin = np.sin(angle, dtype=np.float64)
         i, j = (i if i != 0 else 3 for i in [(axis + 1) % 3, (axis + 2) % 3])
         a_uv[i, i] = a_uv[j, j] = cos
         a_uv[i, j] = a_uv[j, i] = sin
         a_uv[j, i] *= -1
-        out: FourVector = self._copy()
+        out = self._copy()
         out.txyz = a_uv @ out.txyz
         out.label = (
             f"rotate({out.label}, axis={axis}, degree={angle * 180. / np.pi:.3f})"
@@ -332,12 +331,12 @@ class FourVector(object):
             https://en.wikipedia.org/wiki/Rotation_matrix#cite_ref-5
         """
         assert len(u) == 3, "must provide 3-D vector!"
-        un: np.ndarray = np.array(u, dtype=np.float64)
+        un = np.array(u, dtype=np.float64)
         un = un / np.linalg.norm(un, keepdims=True)
         ux, uy, uz = un[0], un[1], un[2]
-        cos: np.float64 = np.cos(angle, dtype=np.float64)
-        sin: np.float64 = np.sin(angle, dtype=np.float64)
-        a_uv: np.ndarray = np.diag([1.0, 1.0, 1.0, 1.0]).astype(np.float64)
+        cos = np.cos(angle, dtype=np.float64)
+        sin = np.sin(angle, dtype=np.float64)
+        a_uv = np.diag([1.0, 1.0, 1.0, 1.0]).astype(np.float64)
         a_uv[1:, 1:] = np.array(
             [
                 [
@@ -358,7 +357,7 @@ class FourVector(object):
             ],
             dtype=np.float64,
         )
-        out: FourVector = self._copy()
+        out = self._copy()
         out.txyz = a_uv @ out.txyz
         out.label = f"rotate({out.label}, axis={u}, degree={angle * 180. / np.pi:.3f})"
         return out, a_uv
@@ -378,11 +377,11 @@ class FourVector(object):
         assert (
             axis > 0 and axis < dim_spacetime
         ), "must rotate along x (1), y (2), z (3)"
-        a_uv: np.ndarray = np.diag([1.0, 1.0, 1.0, 1.0]).astype(np.float64)
+        a_uv = np.diag([1.0, 1.0, 1.0, 1.0]).astype(np.float64)
         b, y = velocity, gamma(velocity)
         a_uv[0, 0] = a_uv[axis, axis] = y
         a_uv[0, 3] = a_uv[3, 0] = -y * b
-        out: FourVector = self._copy()
+        out = self._copy()
         out.txyz = a_uv @ out.txyz
         out.label = f"boost({out.label}, axis={axis}, velocity={velocity:.3f})"
         return out, a_uv
@@ -401,11 +400,11 @@ class FourVector(object):
             https://en.wikipedia.org/wiki/Lorentz_transformation
         """
         assert len(u) == 3, "must provide 3-D vector!"
-        un: np.ndarray = np.array(u, dtype=np.float64)
+        un = np.array(u, dtype=np.float64)
         v = un / np.linalg.norm(un, keepdims=True) * velocity
         v2 = velocity**2
         vx, vy, vz = v[0], v[1], v[2]
-        a_uv: np.ndarray = np.diag([1.0, 1.0, 1.0, 1.0]).astype(np.float64)
+        a_uv = np.diag([1.0, 1.0, 1.0, 1.0]).astype(np.float64)
         y = gamma(velocity)
         a_uv[0][0] = y
         a_uv[0, 1:] = -y * v
@@ -418,7 +417,7 @@ class FourVector(object):
             ],
             dtype=np.float64,
         )
-        out: FourVector = self._copy()
+        out = self._copy()
         out.txyz = a_uv @ out.txyz
         out.label = f"boost({out.label}, axis={u}, velocity={velocity:.3f})"
         return out, a_uv
@@ -523,7 +522,7 @@ class FourMomentum(FourVector):
             pass
         elif "m" in vars.keys():
             px, py, pz = vars["px"], vars["py"], vars["pz"]
-            p2: np.float64 = px**2 + py**2 + pz**2
+            p2 = px**2 + py**2 + pz**2
             m2 = vars["m"] ** 2
             vars["E"] = np.sqrt(m2 + p2)
         else:
