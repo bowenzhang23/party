@@ -1,5 +1,5 @@
 import numpy as np
-from typing import Any, List, Set, Dict, Callable
+from typing import Any, Dict, Callable
 
 
 __author__ = "Bowen Zhang"
@@ -296,8 +296,8 @@ class FourVectorBase(object):
         else:
             return self._boost_axis(velocity, param)
 
-    def boost_to_zmf_of(self, other: Any) -> Any:
-        """Boost to zero mass frame of a specific FourVector
+    def boost_to_restframe_of(self, other: Any) -> Any:
+        """Boost to the rest frame of a specific FourVector
 
         Returns:
             Any: transformed vector
@@ -307,13 +307,13 @@ class FourVectorBase(object):
         v = np.linalg.norm(b)
         return self.boost(v, tuple(b.tolist()))
 
-    def boost_to_zmf(self) -> Any:
-        """Boost to zero mass frame
+    def boost_to_restframe(self) -> Any:
+        """Boost to the rest frame
 
         Returns:
             Any: transformed vector
         """
-        return self.boost_to_zmf_of(self)
+        return self.boost_to_restframe_of(self)
 
     def _rotate_axis(self, angle: Any, axis: int) -> Any:
         """spatial rotation along a given axis
