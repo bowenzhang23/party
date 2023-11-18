@@ -27,7 +27,7 @@ varname_set = (
 
 # helper functions
 def gamma(beta: Any) -> np.float64:
-    """$$\gamma = \frac{1}{\sqrt{1 - {\beta}^{2}}}$$
+    """y = 1/sqrt(1 - beta^2)
 
     Args:
         beta (Any): velocity
@@ -39,7 +39,7 @@ def gamma(beta: Any) -> np.float64:
 
 
 def rapidity(beta: Any) -> np.float64:
-    """$$\tanh{y} = \beta$$
+    """tanhy = beta
 
     Args:
         beta (Any): velocity
