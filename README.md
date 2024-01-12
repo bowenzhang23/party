@@ -7,3 +7,4 @@ of particle physics entities.
 
 - [FourVector](docs/FourVector.md)
 - [Histogram](docs/Histogram.md)
+- [Miniroot](docs/Miniroot.md)

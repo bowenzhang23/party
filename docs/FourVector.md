@@ -22,7 +22,7 @@ $$\tan{2\zeta} = \frac{2\tan{\zeta}}{1-\tan^2{\zeta}} = \frac{2e^{-\eta}}{1-e^{-
 
 Then the relation is proved $p_{z} = p_{\text{T}}\sinh{\eta}$.
 
-### Dev Log
+## Dev Log
 
 - reference: [Math::LorentzVector](https://root.cern.ch/doc/master/classROOT_1_1Math_1_1LorentzVector.html)
 - `TODO`: delta_eta, delta_phi, delta_r(pseudorapidity: bool)

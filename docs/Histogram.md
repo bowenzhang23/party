@@ -1,6 +1,6 @@
 # Histogram
 
-### Dev Log
+## Dev Log
 
 - reference: [TH1](https://root.cern.ch/doc/master/classTH1.html)
 - `TODO`:
