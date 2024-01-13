@@ -1,11 +1,14 @@
-#include <arpa/inet.h> // for ntohl()
-#include <array>
+#pragma once
+
 #include <cinttypes>
 #include <fstream>
-#include <iomanip>
-#include <iostream>
 
-struct logicalrecordheader_t {
+/**
+ * @brief LogicalRecordHeader of TFile
+ *
+ * @see https://root.cern.ch/doc/master/classTFile.html
+ */
+struct LogicalRecordHeader_t {
     int32_t nbytes;       // Length of compressed object (in bytes)
     int16_t version;      // TKey version identifier
     int32_t obj_len;      // Length of uncompressed object
@@ -17,7 +20,12 @@ struct logicalrecordheader_t {
     int32_t seek_pdir;    // Pointer to directory header
     int32_t seek_pdir_64; // Pointer to directory header
 
+    /**
+     * @brief Read field values from file stream
+     *
+     * @param fs file stream
+     */
     void read(std::ifstream& fs);
 };
 
-std::ostream& operator<<(std::ostream& os, const logicalrecordheader_t& lrh);
+std::ostream& operator<<(std::ostream& os, const LogicalRecordHeader_t& lrh);

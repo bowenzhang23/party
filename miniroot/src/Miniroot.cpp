@@ -1,4 +1,4 @@
-#include "miniroot.hpp"
+#include "Miniroot.hpp"
 #include <algorithm>
 #include <cassert>
 #include <cstring>
@@ -63,7 +63,7 @@ void Miniroot::Read()
     }
 }
 
-uint8_t* Miniroot::GetUncompressedBytes(const zip_info& info)
+uint8_t* Miniroot::GetUncompressedBytes(const ZipInfo_t& info)
 {
     m_fs.seekg(info.seekpos);
     int32_t  header_len  = info.compressed ? UNZIP_HEADER_LEN : 0;
@@ -74,7 +74,7 @@ uint8_t* Miniroot::GetUncompressedBytes(const zip_info& info)
     if (!info.compressed) return data;
 
     uint8_t* decomp = new uint8_t[decomp_size];
-    zlib_unzip(data, data_size, decomp, decomp_size);
+    zlib_uncompress(data, data_size, decomp, decomp_size);
     assert(decomp_size == info.obj_len);
 
     delete[] data;

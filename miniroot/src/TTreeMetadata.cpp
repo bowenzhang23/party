@@ -1,24 +1,27 @@
-#include "ttreemetadata.hpp"
+#include "TTreeMetadata.hpp"
 
-void ttreemetadata_t::read(std::stringstream& fs)
+#include <arpa/inet.h> // for ntohl()
+#include <iostream>
+
+void TTreeMetadata_t::read(std::stringstream& ss)
 {
-    fs.read((char*) &entries, sizeof(int64_t));
-    fs.read((char*) &tot_bytes, sizeof(int64_t));
-    fs.read((char*) &zip_bytes, sizeof(int64_t));
-    fs.read((char*) &saved_bytes, sizeof(int64_t));
-    fs.read((char*) &flushed_bytes, sizeof(int64_t));
-    fs.read((char*) &weight, sizeof(int64_t));
-    fs.read((char*) &timer_interval, sizeof(int32_t));
-    fs.read((char*) &scan_field, sizeof(int32_t));
-    fs.read((char*) &update, sizeof(int32_t));
-    fs.read((char*) &default_entry_offset_len, sizeof(int32_t));
-    fs.read((char*) &n_cluster_range, sizeof(int32_t));
-    fs.read((char*) &max_entries, sizeof(int64_t));
-    fs.read((char*) &max_entry_loop, sizeof(int64_t));
-    fs.read((char*) &max_virtual_size, sizeof(int64_t));
-    fs.read((char*) &auto_save, sizeof(int64_t));
-    fs.read((char*) &auto_flush, sizeof(int64_t));
-    fs.read((char*) &estimate, sizeof(int64_t));
+    ss.read((char*) &entries, sizeof(int64_t));
+    ss.read((char*) &tot_bytes, sizeof(int64_t));
+    ss.read((char*) &zip_bytes, sizeof(int64_t));
+    ss.read((char*) &saved_bytes, sizeof(int64_t));
+    ss.read((char*) &flushed_bytes, sizeof(int64_t));
+    ss.read((char*) &weight, sizeof(int64_t));
+    ss.read((char*) &timer_interval, sizeof(int32_t));
+    ss.read((char*) &scan_field, sizeof(int32_t));
+    ss.read((char*) &update, sizeof(int32_t));
+    ss.read((char*) &default_entry_offset_len, sizeof(int32_t));
+    ss.read((char*) &n_cluster_range, sizeof(int32_t));
+    ss.read((char*) &max_entries, sizeof(int64_t));
+    ss.read((char*) &max_entry_loop, sizeof(int64_t));
+    ss.read((char*) &max_virtual_size, sizeof(int64_t));
+    ss.read((char*) &auto_save, sizeof(int64_t));
+    ss.read((char*) &auto_flush, sizeof(int64_t));
+    ss.read((char*) &estimate, sizeof(int64_t));
 
     entries                  = be64toh(entries);
     tot_bytes                = be64toh(tot_bytes);
@@ -39,7 +42,7 @@ void ttreemetadata_t::read(std::stringstream& fs)
     estimate                 = be64toh(estimate);
 }
 
-std::ostream& operator<<(std::ostream& os, const ttreemetadata_t& tmd)
+std::ostream& operator<<(std::ostream& os, const TTreeMetadata_t& tmd)
 {
     os << " --- TTree Metadata --- \n"
        << std::hex << "entries = " << tmd.entries << '\n'

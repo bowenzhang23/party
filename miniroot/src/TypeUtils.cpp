@@ -1,7 +1,7 @@
-#include "typeutils.hpp"
+#include "TypeUtils.hpp"
 #include <cstdio>
 
-void print_mem(uint8_t* mem, unsigned short rows)
+void print_mem(uint8_t* mem, unsigned rows)
 {
     unsigned short i = 0;
     do {

@@ -1,11 +1,14 @@
-#include <arpa/inet.h> // for ntohl()
-#include <array>
+#pragma once
+
 #include <cinttypes>
 #include <fstream>
-#include <iomanip>
-#include <iostream>
 
-struct fileheader_t {
+/**
+ * @brief File header of TFile
+ *
+ * @see https://root.cern.ch/doc/master/classTFile.html
+ */
+struct FileHeader_t {
     int32_t identifier;   // Root file identifier
     int32_t f_version;    // File format version
     int32_t f_begin;      // Pointer to first data record
@@ -20,7 +23,12 @@ struct fileheader_t {
     int32_t f_nbytesinfo; // Number of bytes in TStreamerInfo record
     int8_t  f_uuid[18];   // Universal Unique ID
 
+    /**
+     * @brief Read field values from file stream
+     *
+     * @param fs file stream
+     */
     void read(std::ifstream& fs);
 };
 
-std::ostream& operator<<(std::ostream& os, const fileheader_t& fh);
+std::ostream& operator<<(std::ostream& os, const FileHeader_t& fh);

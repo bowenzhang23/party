@@ -12,4 +12,4 @@ Read root file storing TTree (single but can be easily extended to multiple), as
 
 - [DONE] Read by bytes.
 
-- Read by type
+- [DONE] Read by type

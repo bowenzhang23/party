@@ -1,18 +1,26 @@
 from party.miniroot import *
 from party.histogram import *
 
-h = Hist1D(40, 0., 200.)
-h.set_error_type(BinErrorType.Normal)
 
-r = Miniroot(r"miniroot/resources/example.root")
-array = r.get(r"Zjets/MET", DataType.Float) / 1e3
+def main():
+    """An example usage of `party.miniroot`
+    """
+    h = Hist1D(40, 0.0, 200.0)
+    h.set_error_type(BinErrorType.Normal)
 
-h.fill_array(array)
+    r = Miniroot(r"miniroot/resources/example.root")
+    array = r.get(r"Zjets/MET", DataType.Float) / 1e3
 
-plt.figure()
-h.plot(label="Z+jets", color="black", density=True)
-plt.ylim([0, 0.1])
-plt.xlabel("MET [GeV]")
-plt.ylabel("Arbitrary Unit")
-plt.legend()
-plt.show()
+    h.fill_array(array)
+
+    plt.figure()
+    h.plot(label="Z+jets", color="black", density=True)
+    plt.ylim([0, 0.1])
+    plt.xlabel("MET [GeV]")
+    plt.ylabel("Arbitrary Unit")
+    plt.legend()
+    plt.show()
+
+
+if __name__ == "__main__":
+    main()
