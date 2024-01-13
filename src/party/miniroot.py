@@ -23,31 +23,6 @@ class Miniroot(MinirootBase):
             file_name (str): Path to root file
         """
         super().__init__(file_name)
-        self.func = {
-            DataType.Float: self.get_float,
-            DataType.Double: self.get_double,
-            DataType.Byte: self.get_byte,
-            DataType.Short: self.get_short,
-            DataType.Integer: self.get_integer,
-            DataType.Long: self.get_long,
-        }
-        self.dtype = {
-            DataType.Float: np.float32,
-            DataType.Double: np.float64,
-            DataType.Byte: np.byte,
-            DataType.Short: np.int16,
-            DataType.Integer: np.int32,
-            DataType.Long: np.int64,
-        }
-
-    def branches(self) -> List[str]:
-        """
-        Get names of branches
-
-        Returns:
-            List[str]: List of branch names
-        """
-        return super().branches()
 
     def get(self, branch_name: str, type: DataType) -> Any:
         """Get numpy array specifying branch name and data type
@@ -59,4 +34,20 @@ class Miniroot(MinirootBase):
         Returns:
             Any: numpy array
         """
-        return np.array(self.func[type](branch_name), self.dtype[type])
+        func = {
+            DataType.Float: self.get_float,
+            DataType.Double: self.get_double,
+            DataType.Byte: self.get_byte,
+            DataType.Short: self.get_short,
+            DataType.Integer: self.get_integer,
+            DataType.Long: self.get_long,
+        }
+        dtype = {
+            DataType.Float: np.float32,
+            DataType.Double: np.float64,
+            DataType.Byte: np.byte,
+            DataType.Short: np.int16,
+            DataType.Integer: np.int32,
+            DataType.Long: np.int64,
+        }
+        return np.array(func[type](branch_name), dtype[type])
