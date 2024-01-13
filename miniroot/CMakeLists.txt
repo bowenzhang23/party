@@ -28,8 +28,11 @@ file(GLOB MINIROOT_INC src/*.hpp)
 
 add_library(${PROJECT_NAME} SHARED ${MINIROOT_SRC} ${MINIROOT_INC})
 
+nanobind_add_module(pyminiroot bind/module.cpp)
+target_link_libraries(pyminiroot PRIVATE ${PROJECT_NAME} ZLIB::ZLIB)
+
 install(
-  TARGETS ${PROJECT_NAME}
+  TARGETS ${PROJECT_NAME} pyminiroot
   LIBRARY DESTINATION lib
   ARCHIVE DESTINATION lib)
 

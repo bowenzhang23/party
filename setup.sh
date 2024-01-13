@@ -17,5 +17,6 @@ ARCH_STR="${TARGET}-${VERSION}"
 
 export PATH=$PATH:${PWD}/${ARCH_STR}/bin/
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:${PWD}/${ARCH_STR}/lib/
+export PYTHONPATH=$PYTHONPATH:${PWD}/${ARCH_STR}/lib/
 
 popd

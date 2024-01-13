@@ -7,3 +7,9 @@ Read root file storing TTree (single but can be easily extended to multiple), as
 - How to retrieve type information of each branch (from TTree Metadata at the end? Try to save the uncompressed TTree metadata)
 
 > Difficulty of deserializing TTree Metadata, may change between versions
+
+## Devlog
+
+- [DONE] Read by bytes.
+
+- Read by type

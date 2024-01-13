@@ -1,3 +1,4 @@
+#include "typeutils.hpp"
 #include "miniroot.hpp"
 #include <iostream>
 #include <memory>
@@ -8,26 +9,16 @@ int main(int argc, char** argv)
         std::cout << "Usage\n\tMiniroot_Test <path/to/root>\n";
         return 0;
     }
-    auto miniroot = std::make_unique<Miniroot>(argv[1]);
+    auto        miniroot = std::make_unique<Miniroot>(argv[1]);
+    const auto& branches = miniroot->GetBranches();
 
-    miniroot->Read();
-    const auto& data = miniroot->GetData();
+    std::cout << " --- Branches --- \n";
+    for (const auto& b : branches) { std::cout << b << '\n'; }
 
-    auto print_mem = [](uint8_t* mem, unsigned short rows) {
-        unsigned short i = 0;
-        do {
-            printf("%02x%02x%02x%02x\n", mem[4 * i + 0], mem[4 * i + 1],
-                   mem[4 * i + 2], mem[4 * i + 3]);
-        } while (i++ < rows);
-        std::cout << std::dec;
-    };
+    auto vec = miniroot->Get(branches.at(0));
 
-    for (const auto& p : data) {
-        std::cout << p.first << ", " << p.second.size() << '\n';
-        auto decomp = std::make_unique<uint8_t>();
-        decomp.reset(miniroot->GetUncompressedBytes(p.second.at(0)));
-        print_mem((uint8_t*) decomp.get(), 5);
-    }
+    print_mem(vec.data(), 10);
+    std::cout << "length = " << vec.size() << std::endl;
 
     return 0;
 }
