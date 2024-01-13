@@ -14,7 +14,9 @@ public:
     using StrVec    = std::vector<std::string>;
     explicit Miniroot(const std::string& filename);
     inline const StrVec& GetBranches() const { return m_branches; }
-    std::vector<uint8_t> Get(const std::string& branch_name);
+    std::vector<uint8_t> GetBytes(const std::string& branch_name);
+    template <typename T>
+    std::vector<T> Get(const std::string& branch_name);
 
 private:
     void                    Read();
@@ -37,3 +39,9 @@ private:
     BasketMap                         m_basket_map;
     StrVec                            m_branches;
 };
+
+template <typename T>
+inline std::vector<T> Miniroot::Get(const std::string& branch_name)
+{
+    return from_bytevec<T>(GetBytes(branch_name));
+}

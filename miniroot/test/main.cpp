@@ -15,9 +15,9 @@ int main(int argc, char** argv)
     std::cout << " --- Branches --- \n";
     for (const auto& b : branches) { std::cout << b << '\n'; }
 
-    auto vec = miniroot->Get(branches.at(0));
+    auto vec = miniroot->Get<float>(branches.at(0));
 
-    print_mem(vec.data(), 10);
+    print_mem((uint8_t*)vec.data(), 10);
     std::cout << "length = " << vec.size() << std::endl;
 
     return 0;

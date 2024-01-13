@@ -15,7 +15,7 @@ Miniroot::Miniroot(const std::string& filename)
     SetBranches();
 }
 
-std::vector<uint8_t> Miniroot::Get(const std::string& branch_name)
+std::vector<uint8_t> Miniroot::GetBytes(const std::string& branch_name)
 {
     const auto&          info_vec = m_basket_map.at(branch_name);
     std::vector<uint8_t> decomp;
@@ -48,8 +48,6 @@ void Miniroot::Read()
         if (!ReadByIname()) continue;
         std::string object_title(m_sbuf);
         if (class_name == TBASKET) {
-            std::cout << "Reading .. " << object_name << '_' << object_title
-                      << '\n';
             std::string path(object_title);
             path.push_back('/');
             path.append(object_name);
