@@ -1,6 +1,9 @@
-#include "logicalrecordheader.hpp"
+#include "LogicalRecordHeader.hpp"
 
-void logicalrecordheader_t::read(std::ifstream& fs)
+#include <arpa/inet.h> // for ntohl()
+#include <iostream>
+
+void LogicalRecordHeader_t::read(std::ifstream& fs)
 {
     fs.read((char*) &nbytes, sizeof(int32_t));
     fs.read((char*) &version, sizeof(int16_t));
@@ -34,7 +37,7 @@ void logicalrecordheader_t::read(std::ifstream& fs)
     seek_pdir_64 = ntohl(seek_pdir_64);
 }
 
-std::ostream& operator<<(std::ostream& os, const logicalrecordheader_t& lrh)
+std::ostream& operator<<(std::ostream& os, const LogicalRecordHeader_t& lrh)
 {
     os << " --- Logical Record Header --- \n"
        << "nbytes = " << lrh.nbytes << '\n'

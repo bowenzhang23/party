@@ -1,8 +1,11 @@
-#include "typeutils.hpp"
-#include "miniroot.hpp"
+#include "Miniroot.hpp"
+#include "TypeUtils.hpp"
 #include <iostream>
 #include <memory>
 
+/**
+ * @brief Test the basic usage of Miniroot
+ */
 int main(int argc, char** argv)
 {
     if (argc != 2) {
@@ -17,7 +20,7 @@ int main(int argc, char** argv)
 
     auto vec = miniroot->Get<float>(branches.at(0));
 
-    print_mem((uint8_t*)vec.data(), 10);
+    print_mem((uint8_t*) vec.data(), 10);
     std::cout << "length = " << vec.size() << std::endl;
 
     return 0;

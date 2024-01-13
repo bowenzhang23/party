@@ -1,11 +1,16 @@
-#include <arpa/inet.h> // for ntohl()
-#include <array>
+#pragma once
+
 #include <cinttypes>
-#include <iomanip>
-#include <iostream>
 #include <sstream>
 
-struct ttreemetadata_t {
+/**
+ * @brief TTree Metadata of TFile
+ *
+ * No direct reference shows the exact layout, 
+ * This is not used at the moment,
+ * However the information can still be extracted.
+ */
+struct TTreeMetadata_t {
     int64_t entries;
     int64_t tot_bytes;
     int64_t zip_bytes;
@@ -24,7 +29,12 @@ struct ttreemetadata_t {
     int64_t auto_flush;
     int64_t estimate;
 
-    void read(std::stringstream& fs);
+    /**
+     * @brief Read field values from string stream
+     *
+     * @param ss string stream
+     */
+    void read(std::stringstream& ss);
 };
 
-std::ostream& operator<<(std::ostream& os, const ttreemetadata_t& lrh);
+std::ostream& operator<<(std::ostream& os, const TTreeMetadata_t& lrh);

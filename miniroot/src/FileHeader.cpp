@@ -1,6 +1,9 @@
-#include "fileheader.hpp"
+#include "FileHeader.hpp"
 
-void fileheader_t::read(std::ifstream& fs)
+#include <arpa/inet.h> // for ntohl()
+#include <iostream>
+
+void FileHeader_t::read(std::ifstream& fs)
 {
     fs.read((char*) &identifier, sizeof(int32_t));
     fs.read((char*) &f_version, sizeof(int32_t));
@@ -29,7 +32,7 @@ void fileheader_t::read(std::ifstream& fs)
     f_nbytesinfo = ntohl(f_nbytesinfo);
 }
 
-std::ostream& operator<<(std::ostream& os, const fileheader_t& fh)
+std::ostream& operator<<(std::ostream& os, const FileHeader_t& fh)
 {
     os << " --- File Header --- \n"
        << "identifier = " << fh.identifier << '\n'
