@@ -6,6 +6,8 @@ Write a minimal parton-level event generator in Rust.
 
 It can do ee -> y -> mumu at a lepton collider and qqbar -> Z/y -> mumu and a hadron collider.
 
+It also contains **physics constants** used in particle physics
+
 Based on the reference: https://arxiv.org/pdf/1412.4677.pdf
 
 > This is not a general purpose event generator
@@ -13,6 +15,6 @@ Based on the reference: https://arxiv.org/pdf/1412.4677.pdf
 ## Devlog
 
 [todo] Support multi-D integration
-[todo] ee -> y -> mumu
+[done] ee -> y -> mumu
 [todo] parton distribution function
 [todo] qqbar -> Z/y -> mumu
