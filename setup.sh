@@ -22,3 +22,7 @@ export PYTHONPATH=$PYTHONPATH:${PWD}/${ARCH_STR}/lib/
 popd
 
 export PYTHONPATH=$PYTHONPATH:${PWD}/src/
+
+pushd minigen
+cargo build
+popd
