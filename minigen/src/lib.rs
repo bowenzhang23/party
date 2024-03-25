@@ -4,9 +4,9 @@ pub mod utils;
 
 #[cfg(test)]
 mod tests {
-    use crate::utils::*;
-    use crate::monte_carlo::*;
     use crate::cross_section::*;
+    use crate::monte_carlo::*;
+    use crate::utils::*;
 
     #[test]
     fn test_constant() {
@@ -49,14 +49,23 @@ mod tests {
         let range_f = (0.0, 1.0);
         let range_b = (-1.0, 0.0);
 
-        let sigma =
-            4. * C::PI * C::QED_RUNNING_COUPLING.powf(2.) / 3. / ecm.powf(2.) * C::CONVERSION_FACTOR;
-
+        // total cross section
+        let sigma = 4. * C::PI * C::QED_RUNNING_COUPLING.powf(2.) / 3. / ecm.powf(2.)
+            * C::CONVERSION_FACTOR;
         let f = |cost: f64| ee_y_mumu(cost, ecm);
         let result = integral(&f, range, Some(100_000));
         println!("{} => {:?}, exact = {}", get_name(&f), result, sigma);
         assert!((result.int - sigma).abs() < result.err);
 
+        // distribution of pseudorapidity
+        let events_cost = generate(&f, result, range, None);
+        let mut events_eta = Vec::new();
+        for event in events_cost {
+            events_eta.push(eta(event.acos()));
+        }
+        write_to_file(events_eta, "outputs/ee_y_mumu_eta_dist.txt").expect("failed to write");
+
+        // asymmetry
         let result_f = integral(&f, range_f, Some(100_000));
         let result_b = integral(&f, range_b, Some(100_000));
         println!("{} => {:?}", get_name(&f), result_f);
