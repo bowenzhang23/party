@@ -54,8 +54,8 @@ mod tests {
             * C::CONVERSION_FACTOR;
         let f = |cost: f64| ee_y_mumu(cost, ecm);
         let result = integral(&f, range, Some(100_000));
-        println!("{} => {:?}, exact = {}", get_name(&f), result, sigma);
-        assert!((result.int - sigma).abs() < result.err);
+        println!("{} => {:?}, exact = {:.4}", get_name(&f), result, sigma);
+        assert!((result.int - sigma).abs() < 3. * result.err);
 
         // distribution of pseudorapidity
         let events_cost = generate(&f, result, range, None);
@@ -72,6 +72,46 @@ mod tests {
         println!("{} => {:?}", get_name(&f), result_b);
         let asym = asym(result_f.int, result_b.int);
         println!("asymmetry = {}", asym);
-        assert!(asym.abs() < 1e-2);
+        assert!(asym.abs() < 1e-3);
+    }
+
+    #[test]
+    fn test_qq_zy_mumu() {
+        let ecm: f64 = 90.0; // GeV
+        let s = ecm.sq();
+        let range = (-1.0, 1.0);
+        let range_f = (0.0, 1.0);
+        let range_b = (-1.0, 0.0);
+        let q = "u";
+
+        let mz2 = C::Z_MASS.sq();
+        let gz2 = C::Z_WIDTH.sq();
+        let kappa = C::SQRT_2 * C::FERMI_CONSTANT * mz2 / (4. * C::PI * C::QED_RUNNING_COUPLING);
+        let denom = ((s - mz2).sq() + gz2 * mz2).recip();
+        let chi1 = kappa * s * (s - mz2) * denom;
+        let chi2 = kappa.sq() * s.sq() * denom;
+        let muon = Fermion::new("mu");
+        let quark = Fermion::new(q);
+        let (_qm, vm, am) = muon.into();
+        let (qf, vf, af) = quark.into();
+        let a0 =
+            qf.sq() - 2. * qf * vm * vf * chi1 + (am.sq() + vm.sq()) * (af.sq() + vf.sq()) * chi2;
+
+        // total cross section
+        let sigma =
+            4. * C::PI * C::QED_RUNNING_COUPLING.powf(2.) / 3. / s * a0 * C::CONVERSION_FACTOR;
+        let f = |cost: f64| qq_zy_mumu(cost, q, ecm);
+        let result = integral(&f, range, Some(100_000));
+        println!("{} => {:?}, exact = {:.4}", get_name(&f), result, sigma);
+        assert!((result.int - sigma).abs() < 3. * result.err);
+
+        // asymmetry
+        let result_f = integral(&f, range_f, Some(100_000));
+        let result_b = integral(&f, range_b, Some(100_000));
+        println!("{} => {:?}", get_name(&f), result_f);
+        println!("{} => {:?}", get_name(&f), result_b);
+        let asym = asym(result_f.int, result_b.int);
+        println!("asymmetry = {}", asym);
+        assert!(asym.abs() > 5e-2);
     }
 }

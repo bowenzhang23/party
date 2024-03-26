@@ -14,7 +14,12 @@ Based on the reference: https://arxiv.org/pdf/1412.4677.pdf
 
 ## Devlog
 
-[todo] Support multi-D integration
+### Basic
+
 [done] ee -> y -> mumu
+[done] qqbar -> Z/y -> mumu
+
+### Advanced
+
 [todo] parton distribution function
-[todo] qqbar -> Z/y -> mumu
+[todo] Support multi-D integration
