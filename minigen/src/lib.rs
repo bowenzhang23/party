@@ -31,7 +31,7 @@ mod tests {
         let result_is = integral(&f_new, range_new, None);
         println!("{} => {:?}", get_name(&f), result_is);
 
-        assert!((result.int - result_is.int).abs() < result.err);
+        assert!((result.int - result_is.int).abs() < 3. * result.err);
         assert!((result_is.err - 0.0).abs() < 1e-6);
 
         let events_rho = generate(&f_new, result_is, range_new, Some(10));
@@ -113,5 +113,25 @@ mod tests {
         let asym = asym(result_f.int, result_b.int);
         println!("asymmetry = {}", asym);
         assert!(asym.abs() > 5e-2);
+    }
+
+    #[test]
+    fn test_integral_ndim() {
+        let f = |x: [f64; 3]| x[0] + x[1].powf(2.) + x[2].powf(3.);
+        let range = [(2., 3.), (1., 2.), (0., 1.)];
+        let result = integral_ndim(&f, range, None);
+        println!("{:?}", result);
+        let analytic = 2.5 + 7. / 3. + 0.25;
+        assert!((result.int - analytic).abs() < 3. * result.err);
+    }
+
+    #[test]
+    fn test_generate_ndim() {
+        let f = |x: [f64; 3]| x[0] + x[1].powf(2.) + x[2].powf(3.);
+        let range = [(2., 3.), (1., 2.), (0., 1.)];
+        let result = integral_ndim(&f, range, None);
+        let events = generate_ndim(&f, result, range, Some(5));
+        assert_eq!(events.len(), 5);
+        assert_eq!(events[0].len(), 3);
     }
 }

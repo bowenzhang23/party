@@ -21,3 +21,17 @@ pub fn write_to_file<P: AsRef<Path>>(data: Vec<f64>, path: P) -> std::io::Result
     }
     Ok(())
 }
+
+/**
+ * This is a fake parton distribution function set!
+ * see page12 of https://pdg.lbl.gov/2019/reviews/rpp2019-rev-structure-functions.pdf
+ */
+pub fn pdf(flavour: &str, x: f64, _q2: f64) -> f64 {
+    match flavour {
+        "u" => 2. * x * (1. - x), // max at 1/3, makes sense..
+        "d" => x * (1. - x), // max at 1/3, makes sense..
+        "u~" => 2. - 2. * x * (1. - x).exp(), // some function..
+        "d~" => 2. - 2. * x * (1. - x).exp(), // same as u~
+        _ => panic!("Flavour {} not supported", flavour),
+    }
+}

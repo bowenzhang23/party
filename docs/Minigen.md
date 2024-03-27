@@ -17,9 +17,10 @@ Based on the reference: https://arxiv.org/pdf/1412.4677.pdf
 ### Basic
 
 [done] ee -> y -> mumu
-[done] qqbar -> Z/y -> mumu
+[done] qqbar -> Z/y -> mumu (q-q interaction)
 
 ### Advanced
 
-[todo] parton distribution function
-[todo] Support multi-D integration
+[done] parton distribution function
+[done] Support multi-D integration
+[todo] qqbar -> Z/y -> mumu, (p-p interaction)
