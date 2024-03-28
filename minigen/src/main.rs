@@ -13,7 +13,7 @@ fn main() -> std::io::Result<()> {
     for e in 50..=130 {
         ecm.push(e as f64);
         let f = |cost: f64| qq_zy_mumu(cost, q, e as f64);
-        let result = integral(&f, range, Some(1000));
+        let result = integral(&f, range.0, range.1, Some(1000));
         xs.push(result.int);
         xs_err.push(result.err);
     }

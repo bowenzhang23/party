@@ -22,12 +22,12 @@ impl Debug for IntegralResult {
 // 1D
 // ----------------------------------------------------------------------------
 
-pub fn integral<F>(f: &F, range: (f64, f64), npoints: Option<usize>) -> IntegralResult
+pub fn integral<F>(f: &F, range_min: f64, range_max: f64, npoints: Option<usize>) -> IntegralResult
 where
     F: Fn(f64) -> f64,
 {
-    let x1 = range.0;
-    let x2 = range.1;
+    let x1 = range_min;
+    let x2 = range_max;
     let rho_gen = Uniform::new(0.0, 1.0);
     let mut rng = thread_rng();
 
@@ -56,14 +56,15 @@ where
 pub fn generate<F>(
     f: &F,
     result: IntegralResult,
-    range: (f64, f64),
+    range_min: f64,
+    range_max: f64,
     npoints: Option<usize>,
 ) -> Vec<f64>
 where
     F: Fn(f64) -> f64,
 {
-    let x1 = range.0;
-    let x2 = range.1;
+    let x1 = range_min;
+    let x2 = range_max;
     let rho_gen = Uniform::new(0.0, 1.0);
     let r_gen = Uniform::new(0.0, 1.0);
     let mut rng = thread_rng();
@@ -89,13 +90,15 @@ where
 // Multi-D
 // ----------------------------------------------------------------------------
 
-pub fn integral_ndim<F, const N: usize>(
+pub fn integral_ndim<F, Fr, const N: usize>(
     f: &F,
-    range: [(f64, f64); N],
+    range_min: [Fr; N],
+    range_max: [Fr; N],
     npoints: Option<usize>,
 ) -> IntegralResult
 where
     F: Fn([f64; N]) -> f64,
+    Fr: Fn([Option<f64>; N]) -> f64,
 {
     let rho_gen = Uniform::new(0.0, 1.0);
     let mut rng = thread_rng();
@@ -105,9 +108,15 @@ where
     let mut var = 0.0;
     let mut wmax = 0.0;
     for _ in 0..n {
-        let xi: [f64; N] = range.map(|x| (x.1 - x.0) * rng.sample(rho_gen) + x.0);
-        let mut wi = f(xi);
-        range.iter().for_each(|x| wi *= x.1 - x.0);
+        let mut wi = 1.;
+        let mut xi: [Option<f64>; N] = [None; N];
+        for i in 0..N {
+            let x2 = range_max.get(i).unwrap()(xi);
+            let x1 = range_min.get(i).unwrap()(xi);
+            xi[i] = Some((x2 - x1) * rng.sample(rho_gen) + x1);
+            wi *= x2 - x1;
+        }
+        wi *= f(xi.map(|x| x.unwrap()));
         sum += wi;
         var += wi * wi;
         wmax = f64::max(wmax, wi);
@@ -123,14 +132,16 @@ where
     }
 }
 
-pub fn generate_ndim<F, const N: usize>(
+pub fn generate_ndim<F, Fr, const N: usize>(
     f: &F,
     result: IntegralResult,
-    range: [(f64, f64); N],
+    range_min: [Fr; N],
+    range_max: [Fr; N],
     npoints: Option<usize>,
 ) -> Vec<[f64; N]>
 where
-F: Fn([f64; N]) -> f64,
+    F: Fn([f64; N]) -> f64,
+    Fr: Fn([Option<f64>; N]) -> f64,
 {
     let rho_gen = Uniform::new(0.0, 1.0);
     let r_gen = Uniform::new(0.0, 1.0);
@@ -142,13 +153,20 @@ F: Fn([f64; N]) -> f64,
     let mut count = 0_usize;
 
     while count < n {
-        let xi: [f64; N] = range.map(|x| (x.1 - x.0) * rng.sample(rho_gen) + x.0);
-        let mut wi = f(xi);
-        range.iter().for_each(|x| wi *= x.1 - x.0);
+        let mut wi = 1.;
+        let mut xi: [Option<f64>; N] = [None; N];
+        for i in 0..N {
+            let x2 = range_max.get(i).unwrap()(xi);
+            let x1 = range_min.get(i).unwrap()(xi);
+            xi[i] = Some((x2 - x1) * rng.sample(rho_gen) + x1);
+            wi *= x2 - x1;
+        }
+        let xi_v = xi.map(|x| x.unwrap());
+        wi *= f(xi_v);
         let wi_rel = wi / wmax;
         if wi_rel > rng.sample(r_gen) {
             count += 1;
-            events.push(xi);
+            events.push(xi_v);
         }
     }
     events
