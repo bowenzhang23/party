@@ -285,3 +285,9 @@ class Hist1D(object):
         vline_data = self._bin_centre, bin_content_dn, bin_content_up
         plt.hlines(*hline_data, colors=color, label=label)
         plt.vlines(*vline_data, colors=color)
+
+def make_hist1d(arr, nbin, start, end, error_type=BinErrorType.Normal):
+    h = Hist1D(nbin, start, end)
+    h.set_error_type(error_type)
+    h.fill_array(arr)
+    return h

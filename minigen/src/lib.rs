@@ -77,30 +77,18 @@ mod tests {
 
     #[test]
     fn test_qq_zy_mumu() {
-        let ecm: f64 = 90.0; // GeV
-        let s = ecm.sq();
+        const ECM: f64 = 13600.0; // GeV
+        const S: f64 = ECM * ECM;
+        const Q: &str = "u";
         let range = (-1.0, 1.0);
         let range_f = (0.0, 1.0);
         let range_b = (-1.0, 0.0);
-        let q = "u";
-
-        let mz2 = C::Z_MASS.sq();
-        let gz2 = C::Z_WIDTH.sq();
-        let kappa = C::SQRT_2 * C::FERMI_CONSTANT * mz2 / (4. * C::PI * C::QED_RUNNING_COUPLING);
-        let denom = ((s - mz2).sq() + gz2 * mz2).recip();
-        let chi1 = kappa * s * (s - mz2) * denom;
-        let chi2 = kappa.sq() * s.sq() * denom;
-        let muon = Fermion::new("mu");
-        let quark = Fermion::new(q);
-        let (_qm, vm, am) = muon.into();
-        let (qf, vf, af) = quark.into();
-        let a0 =
-            qf.sq() - 2. * qf * vm * vf * chi1 + (am.sq() + vm.sq()) * (af.sq() + vf.sq()) * chi2;
+        let (a0, _a1) = drell_yan_matrix_element_constants(Q, "mu", ECM);
 
         // total cross section
         let sigma =
-            4. * C::PI * C::QED_RUNNING_COUPLING.powf(2.) / 3. / s * a0 * C::CONVERSION_FACTOR;
-        let f = |cost: f64| qq_zy_mumu(cost, q, ecm);
+            4. * C::PI * C::QED_RUNNING_COUPLING.powf(2.) / 3. / S * a0 * C::CONVERSION_FACTOR;
+        let f = |cost: f64| qq_zy_mumu(cost, Q, ECM);
         let result = integral(&f, range.0, range.1, Some(100_000));
         println!("{} => {:?}, exact = {:.4}", get_name(&f), result, sigma);
         assert!((result.int - sigma).abs() < 3. * result.err);
@@ -135,5 +123,44 @@ mod tests {
         let events = generate_ndim(&f, result, range_min, range_max, Some(5));
         assert_eq!(events.len(), 5);
         assert_eq!(events[0].len(), 3);
+    }
+
+    #[test]
+    fn test_pp_zy_mumu() -> std::io::Result<()> {
+        const ECM: f64 = 1000.; // GeV
+        const CUTOFF: f64 = 60.; // GeV
+        const S: f64 = ECM * ECM;
+        const Q: &str = "u";
+        let range_min = [
+            |_| -1.,
+            |_| CUTOFF * CUTOFF / S,
+            |x: [Option<f64>; 3]| 0.5 * x[1].unwrap().ln(),
+        ]; // variables are 0:cost, 1:tau, 2: eta
+        let range_max = [
+            |_| 1.,
+            |_| 1.,
+            |x: [Option<f64>; 3]| -0.5 * x[1].unwrap().ln(),
+        ]; // variables are 0:cost, 1:tau, 2: eta
+
+        // total cross section
+        let f = |x: [f64; 3]| pp_zy_mumu(x[0], x[1], x[2], Q, ECM);
+        let result = integral_ndim(&f, range_min, range_max, Some(100_000));
+        println!("{} => {:?}", get_name(&f), result);
+
+        let events = generate_ndim(&f, result, range_min, range_max, Some(10_000));
+        let mut cost: Vec<f64> = Vec::new();
+        let mut beta: Vec<f64> = Vec::new();
+        let mut ecm_hat: Vec<f64> = Vec::new();
+        for event in events {
+            cost.push(event[0]);
+            let x1 = event[1].sqrt() * event[2].exp();
+            let x2 = event[1].sqrt() * (-event[2]).exp();
+            beta.push((x2 - x1) / (x2 + x1));
+            ecm_hat.push((event[1] * S).sqrt());
+        }
+        write_to_file(cost, "outputs/pp_zy_mumu_cost.txt")?;
+        write_to_file(beta, "outputs/pp_zy_mumu_beta.txt")?;
+        write_to_file(ecm_hat, "outputs/pp_zy_mumu_ecm_hat.txt")?;
+        Ok(())
     }
 }

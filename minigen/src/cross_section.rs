@@ -1,3 +1,5 @@
+use crate::utils::pdf;
+
 pub trait Square {
     fn sq(self) -> Self;
 }
@@ -65,6 +67,26 @@ impl Into<(f64, f64, f64)> for Fermion {
     }
 }
 
+/**
+ * return the a0 and a1
+ */
+pub fn drell_yan_matrix_element_constants(q: &str, l: &str, ecm: f64) -> (f64, f64) {
+    let s = ecm.sq();
+    let mz2 = C::Z_MASS.sq();
+    let gz2 = C::Z_WIDTH.sq();
+    let kappa = C::SQRT_2 * C::FERMI_CONSTANT * mz2 / (4. * C::PI * C::QED_RUNNING_COUPLING);
+    let denom = ((s - mz2).sq() + gz2 * mz2).recip();
+    let chi1 = kappa * s * (s - mz2) * denom;
+    let chi2 = kappa.sq() * s.sq() * denom;
+    let lepton = Fermion::new(l);
+    let quark = Fermion::new(q);
+    let (_ql, vl, al) = lepton.into();
+    let (qq, vq, aq) = quark.into();
+    let a0 = qq.sq() - 2. * qq * vl * vq * chi1 + (al.sq() + vl.sq()) * (aq.sq() + vq.sq()) * chi2;
+    let a1 = -4. * qq * al * aq * chi1 + 8. * al * vl * aq * vq * chi2;
+    (a0, a1)
+}
+
 // ----------------------------------------------------------------------------
 // Functions
 // ----------------------------------------------------------------------------
@@ -85,23 +107,24 @@ pub fn ee_y_mumu(cost: f64, ecm: f64) -> f64 {
 }
 
 pub fn qq_zy_mumu(cost: f64, q: &str, ecm: f64) -> f64 {
-    let s = ecm.sq();
-    let mz2 = C::Z_MASS.sq();
-    let gz2 = C::Z_WIDTH.sq();
-    let kappa = C::SQRT_2 * C::FERMI_CONSTANT * mz2 / (4. * C::PI * C::QED_RUNNING_COUPLING);
-    let denom = ((s - mz2).sq() + gz2 * mz2).recip();
-    let chi1 = kappa * s * (s - mz2) * denom;
-    let chi2 = kappa.sq() * s.sq() * denom;
-    let muon = Fermion::new("mu");
-    let quark = Fermion::new(q);
-    let (_qm, vm, am) = muon.into();
-    let (qf, vf, af) = quark.into();
-    let a0 = qf.sq() - 2. * qf * vm * vf * chi1 + (am.sq() + vm.sq()) * (af.sq() + vf.sq()) * chi2;
-    let a1 = -4. * qf * am * af * chi1 + 8. * am * vm * af * vf * chi2;
-
+    let (a0, a1) = drell_yan_matrix_element_constants(q, "mu", ecm);
     let int_phi = 2.0 * C::PI;
     let coeff = C::CONVERSION_FACTOR * C::QED_RUNNING_COUPLING.sq() / (4.0 * ecm.sq());
     int_phi * coeff * (a0 * (1.0 + cost.sq()) + a1 * cost)
+}
+
+pub fn pp_zy_mumu(cost: f64, tau: f64, eta: f64, q: &str, ecm: f64) -> f64 {
+    // only consider one parton of the proton, i.e. u
+    let q_prime: String = q.to_string() + "~";
+    let int_phi = 2.0 * C::PI;
+    let x1 = tau.sqrt() * (eta).exp();
+    let x2 = tau.sqrt() * (-eta).exp();
+    let s_hat = tau * ecm.sq();
+    let fq = pdf(q, x1, s_hat);
+    let fq_prime = pdf(q_prime.as_str(), x2, s_hat);
+    let coeff = C::CONVERSION_FACTOR * C::QED_RUNNING_COUPLING.sq() / (4.0 * s_hat);
+    let (a0, a1) = drell_yan_matrix_element_constants(q, "mu", s_hat.sqrt());
+    int_phi * coeff * (a0 * (1.0 + cost.sq()) + a1 * cost) * fq * fq_prime
 }
 
 // ----------------------------------------------------------------------------
