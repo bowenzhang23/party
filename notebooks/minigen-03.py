@@ -6,6 +6,8 @@ from party.vector import *
 
 
 def boost_z_direction(beta, p):
+    """Simply boost to Z-axis
+    """
     gamma = np.sqrt(1.0 / (1.0 - np.square(beta)))
     p_boost = p.copy()
     p_boost[:, 0] = gamma * p[:, 0] - gamma * beta * p[:, 3]
@@ -14,6 +16,8 @@ def boost_z_direction(beta, p):
 
 
 def main():
+    """An example of examing generated pp->Zy->mumu events
+    """
     cost, beta, ecm_hat = (
         np.loadtxt("minigen/outputs/pp_zy_mumu_cost.txt"),
         np.loadtxt("minigen/outputs/pp_zy_mumu_beta.txt"),

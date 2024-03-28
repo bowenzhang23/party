@@ -2,6 +2,9 @@ use rand::distributions::Uniform;
 use rand::{thread_rng, Rng};
 use std::fmt::Debug;
 
+/**
+ * Maintain results of the integration
+ */
 pub struct IntegralResult {
     pub int: f64,
     pub err: f64,
@@ -22,6 +25,9 @@ impl Debug for IntegralResult {
 // 1D
 // ----------------------------------------------------------------------------
 
+/**
+ * Integrate a 1D function, given the range and number of MC points
+ */
 pub fn integral<F>(f: &F, range_min: f64, range_max: f64, npoints: Option<usize>) -> IntegralResult
 where
     F: Fn(f64) -> f64,
@@ -53,6 +59,10 @@ where
     }
 }
 
+/**
+ * Generate events with one var, given integration result, range and number
+ * of events.
+ */
 pub fn generate<F>(
     f: &F,
     result: IntegralResult,
@@ -90,6 +100,12 @@ where
 // Multi-D
 // ----------------------------------------------------------------------------
 
+/**
+ * Integrate a N-D function, given the range and number of MC points.
+ * The range must be given by N->1 function, the first m vars are used to
+ * determine the integration limits of the m+1 th var.
+ * The integration order of the variables is indicated by the array index.
+ */
 pub fn integral_ndim<F, Fr, const N: usize>(
     f: &F,
     range_min: [Fr; N],
@@ -132,6 +148,10 @@ where
     }
 }
 
+/**
+ * Generate events with N vars, given integration result, range and number
+ * of events. See `integrate_ndim` for the definition of `range`.
+ */
 pub fn generate_ndim<F, Fr, const N: usize>(
     f: &F,
     result: IntegralResult,

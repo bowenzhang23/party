@@ -1,18 +1,29 @@
 use crate::utils::pdf;
 
+/**
+ * Basically do x.sq() = x * x
+ */
 pub trait Square {
     fn sq(self) -> Self;
 }
 
+/**
+ * Implement square for f64, used as a shortcut
+ */
 impl Square for f64 {
     fn sq(self) -> Self {
         self * self
     }
 }
 
+/**
+ * Particle Physics constants
+ */
 pub struct C;
 
-#[allow(dead_code)]
+/**
+ * Values of Particle Physics constants
+ */
 impl C {
     pub const PI: f64 = std::f64::consts::PI;
     pub const SQRT_2: f64 = std::f64::consts::SQRT_2;
@@ -24,12 +35,18 @@ impl C {
     pub const SIN_THETAW2: f64 = 0.222246; // Weinberg angle
 }
 
+/**
+ * EW parameters for fermion
+ */
 pub struct Fermion {
     pub charge: f64,
     pub v: f64,
     pub a: f64,
 }
 
+/**
+ * EW parameters for fermion: charge and V,A in neutral current interaction
+ */
 impl Fermion {
     pub fn new(label: &str) -> Self {
         let s2 = C::SIN_THETAW2;
@@ -61,6 +78,9 @@ impl Fermion {
     }
 }
 
+/**
+ * Fermion into tuple, use as a shortcut
+ */
 impl Into<(f64, f64, f64)> for Fermion {
     fn into(self) -> (f64, f64, f64) {
         (self.charge, self.v, self.a)
@@ -68,7 +88,7 @@ impl Into<(f64, f64, f64)> for Fermion {
 }
 
 /**
- * return the a0 and a1
+ * Calculate the a0 and a1 in Zy matrix element
  */
 pub fn drell_yan_matrix_element_constants(q: &str, l: &str, ecm: f64) -> (f64, f64) {
     let s = ecm.sq();
