@@ -50,8 +50,7 @@ class Hist1D(object):
         self._bin_error_type = BinErrorType.Normal
 
     def _use_normal_error(self) -> bool:
-        """Check if normal error should be forced to use
-        """
+        """Check if normal error should be forced to use"""
         return self._bin_error_type == BinErrorType.Normal or not np.allclose(
             self._bin_sumw, self._bin_sumw2
         )
@@ -95,6 +94,21 @@ class Hist1D(object):
             return (np.sqrt(np.abs(sumw2)),) * 2
         return self._calculate_poisson_error(sumw)
 
+    def _reset_bin_content(self, idx: int, sum: float, sum2: float) -> None:
+        """Reset the content of a bin, will call updating of the errors
+
+        Args:
+            idx (int): index
+            sum (float): sum of weights to accumulate
+            sum2 (float): sum of weight squares to accumulate
+        """
+        self._bin_sumw[idx] = sum
+        self._bin_sumw2[idx] = sum2
+        c = self._bin_sumw[idx]
+        self._max = max(self._max, c)
+        self._min = min(self._min, c)
+        self._update_bin_error(idx)
+
     def _update_bin_content(self, idx: int, sum: float, sum2: float) -> None:
         """Update the content of a bin, will call updating of the errors
 
@@ -103,12 +117,9 @@ class Hist1D(object):
             sum (float): sum of weights to accumulate
             sum2 (float): sum of weight squares to accumulate
         """
-        self._bin_sumw[idx] += sum
-        self._bin_sumw2[idx] += sum2
-        c = self._bin_sumw[idx]
-        self._max = max(self._max, c)
-        self._min = min(self._min, c)
-        self._update_bin_error(idx)
+        self._reset_bin_content(
+            idx, self._bin_sumw[idx] + sum, self._bin_sumw2[idx] + sum2
+        )
 
     def _update_bin_error(self, idx: int) -> None:
         """Update the errors of a bin
@@ -120,12 +131,12 @@ class Hist1D(object):
             self._bin_sumw[idx], self._bin_sumw2[idx]
         )
 
-    def fill(self, value: float, weight: float = None) -> None:
+    def fill(self, value: float, weight=None) -> None:
         """Fill a value with weight to the histogram
 
         Args:
             value (float): the value
-            weight (float, optional): the weight. Defaults to None.
+            weight (optional): the weight. Defaults to None.
         """
         weight = 1.0 if weight is None else weight
         if value < self._xmin:
@@ -136,12 +147,12 @@ class Hist1D(object):
             idx = np.searchsorted(self._bin_edges, value, side="right")
         self._update_bin_content(idx, weight, weight * weight)
 
-    def fill_array(self, values: np.ndarray, weights: np.ndarray = None) -> None:
+    def fill_array(self, values: np.ndarray, weights=None) -> None:
         """Fill an array of value with an array of weights of the same size
 
         Args:
             values (np.ndarray): the values
-            weights (np.ndarray, optional): the weights. Defaults to None.
+            weights (optional): the weights. Defaults to None.
         """
         if weights is not None:
             assert values.shape == weights.shape, (
@@ -154,11 +165,22 @@ class Hist1D(object):
             self.fill(value, weight)
 
     def set_error_type(self, error_type: BinErrorType) -> None:
-        """Set error type manually
-        """
+        """Set error type manually"""
         self._bin_error_type = error_type
 
     # region Getters
+    def _debug_data(self) -> Any:
+        """Return detailed data hold by the object for debug purpose"""
+        data_dict = {
+            "edge": self._bin_edges,
+            "centre": self._bin_centre,
+            "sumw": self._bin_sumw,
+            "sumw2": self._bin_sumw2,
+            "error_up": self._bin_error_up,
+            "error_dn": self._bin_error_dn,
+        }
+        return data_dict
+
     def data(self, spec: str = "sumw") -> np.ndarray:
         """Return data specifying a name
 
@@ -168,15 +190,7 @@ class Hist1D(object):
         Returns:
             np.ndarray: the underlying data
         """
-        data_dict = {
-            "edge": self._bin_edges,
-            "centre": self._bin_centre,
-            "sumw": self._bin_sumw,
-            "sumw2": self._bin_sumw2,
-            "error_up": self._bin_error_up,
-            "error_dn": self._bin_error_dn,
-        }
-        return data_dict[spec]
+        return self._debug_data[spec]
 
     def get_n_bins(self) -> Any:
         return self._n_bins
@@ -221,13 +235,23 @@ class Hist1D(object):
         return _copy
 
     def add(self, other: Any, scale: float = 1.0) -> Any:
+        """Add scale x other (histogram)
+
+        Args:
+            other (Any): Another Hist1D object
+            scale (float, optional): scaling of other. Defaults to 1.0.
+
+        Returns:
+            Any: new Hist1D that equals this + scale x other,
+            errors are recalculated
+        """
         copy = self.copy()
         n = copy.get_n_bins()
         assert n == other.get_n_bins(), (
             f"Must have same number of bins, "
             f"however get {n} and {other.get_n_bins()}"
         )
-        for i in range(n):
+        for i in range(n + 1):
             copy._update_bin_content(
                 i, scale * other.get_bin_sumw(i), scale * scale * other.get_bin_sumw2(i)
             )
@@ -240,19 +264,99 @@ class Hist1D(object):
         return self.add(other, -1.0)
 
     def scale(self, k: float = 1.0) -> Any:
+        """Scalar scaling of this Hist1D
+
+        Args:
+            k (float, optional): scaling factor. Defaults to 1.0.
+
+        Returns:
+            Any: new Hist1D that equals k x this
+            errors are recalculated
+        """
         copy = self.copy()
         n = copy.get_n_bins()
-        for i in range(n):
-            copy._update_bin_content(
+        for i in range(n + 1):
+            copy._reset_bin_content(
                 i, k * copy.get_bin_sumw(i), k * k * copy.get_bin_sumw2(i)
             )
         return copy
 
-    def __mul__(self, k: float) -> Any:
-        return self.scale(k)
+    def multiply(self, other: Any) -> Any:
+        """Multiplication of two Hist1D
 
-    def __rmul__(self, k: float) -> Any:
-        return self.scale(k)
+        Args:
+            other (Any): Another Hist1D object
+
+        Returns:
+            Any: new Hist1D that equals this x other,
+            errors are recalculated
+        """
+        copy = self.copy()
+        n = copy.get_n_bins()
+        assert n == other.get_n_bins(), (
+            f"Must have same number of bins, "
+            f"however get {n} and {other.get_n_bins()}"
+        )
+        for i in range(n + 1):
+            sumw_this, sumw2_this = copy.get_bin_sumw(i), copy.get_bin_sumw2(i)
+            sumw_that, sumw2_that = other.get_bin_sumw(i), other.get_bin_sumw2(i)
+            prod = sumw_this * sumw_that
+            prod_sumw2_estimate = 0
+            if sumw_this != 0:
+                prod_sumw2_estimate += sumw2_this / (sumw_this**2)
+            if sumw_that != 0:
+                prod_sumw2_estimate += sumw2_that / (sumw_that**2)
+            prod_sumw2_estimate *= prod**2
+            copy._reset_bin_content(i, prod, prod_sumw2_estimate)
+        return copy
+
+    def divide(self, other: Any) -> Any:
+        """Division of two Hist1D
+
+        Args:
+            other (Any): Another Hist1D object
+
+        Returns:
+            Any: new Hist1D that equals this / other,
+            errors are recalculated, zero division are restricted to zero
+        """
+        copy = self.copy()
+        n = copy.get_n_bins()
+        assert n == other.get_n_bins(), (
+            f"Must have same number of bins, "
+            f"however get {n} and {other.get_n_bins()}"
+        )
+        for i in range(n + 1):
+            sumw_this, sumw2_this = copy.get_bin_sumw(i), copy.get_bin_sumw2(i)
+            sumw_that, sumw2_that = other.get_bin_sumw(i), other.get_bin_sumw2(i)
+            div = 0
+            div_sumw2_estimate = 0
+            if sumw_this != 0 and sumw_that != 0:
+                div = sumw_this / sumw_that
+                div_sumw2_estimate += sumw2_this / (sumw_this**2)
+                div_sumw2_estimate += sumw2_that / (sumw_that**2)
+                div_sumw2_estimate *= div**2
+            copy._reset_bin_content(i, div, div_sumw2_estimate)
+        return copy
+
+    def __mul__(self, other: Any) -> Any:
+        if isinstance(other, float):
+            return self.scale(other)
+        elif isinstance(other, Hist1D):
+            return self.multiply(other)
+        else:
+            raise ArithmeticError(f"Can not multiply Hist1D with {type(other)}")
+
+    def __truediv__(self, other: Any) -> Any:
+        if isinstance(other, float):
+            return self.scale(1.0 / other)
+        elif isinstance(other, Hist1D):
+            return self.divide(other)
+        else:
+            raise ArithmeticError(f"Can not divide Hist1D with {type(other)}")
+
+    def __rmul__(self, other: float) -> Any:
+        return self.scale(other)
 
     def integral(self):
         integral = np.sum(self._bin_sumw)
@@ -285,6 +389,7 @@ class Hist1D(object):
         vline_data = self._bin_centre, bin_content_dn, bin_content_up
         plt.hlines(*hline_data, colors=color, label=label)
         plt.vlines(*vline_data, colors=color)
+
 
 def make_hist1d(arr, nbin, start, end, error_type=BinErrorType.Normal):
     h = Hist1D(nbin, start, end)
