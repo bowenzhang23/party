@@ -46,9 +46,9 @@ def main():
     pt = np.sqrt(p_mu[:, 1] ** 2 + p_mu[:, 2] ** 2)
     np.allclose(m, ecm_hat)
 
-    h_m = make_hist1d(m, 100, 60, 200)
-    h_pt = make_hist1d(pt, 100, 0, 100)
-    h_cost = make_hist1d(cost, 100, -1, 1)
+    h_m = make_Hist1D(m, 100, 60, 200)
+    h_pt = make_Hist1D(pt, 100, 0, 100)
+    h_cost = make_Hist1D(cost, 100, -1, 1)
 
     plt.ion()
 

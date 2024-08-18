@@ -23,4 +23,4 @@ Based on the reference: https://arxiv.org/pdf/1412.4677.pdf
 
 [done] parton distribution function
 [done] Support multi-D integration
-[todo] qqbar -> Z/y -> mumu, (p-p interaction)
+[done] qqbar -> Z/y -> mumu, (p-p interaction)
