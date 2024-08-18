@@ -1,6 +1,6 @@
 import numpy as np
-from scipy.stats import gamma
 import matplotlib.pyplot as plt
+from scipy.stats import gamma
 from typing import Any, Tuple
 
 
@@ -32,21 +32,21 @@ class Hist1D(object):
             RuntimeError:
         """
         if isinstance(bins, np.ndarray) or isinstance(bins, list):
-            self._bin_edges = np.array(bins)
+            self._bin_edge = np.array(bins)
         elif isinstance(bins, int):
-            self._bin_edges = np.linspace(start, end, bins + 1)
+            self._bin_edge = np.linspace(start, end, bins + 1)
         else:
             raise RuntimeError(f"bins of type {type(bins)} is not supported!")
-        self._n_bins = len(self._bin_edges)
-        self._xmin = self._bin_edges[0]
-        self._xmax = self._bin_edges[-1]
+        self._n_bins = len(self._bin_edge) + 1
+        self._xmin = self._bin_edge[0]
+        self._xmax = self._bin_edge[-1]
         self._max = 0.0
         self._min = 0.0
-        self._bin_centre = 0.5 * (self._bin_edges[:-1] + self._bin_edges[1:])
-        self._bin_sumw = np.zeros((len(self._bin_edges) + 1,))
-        self._bin_sumw2 = np.zeros((len(self._bin_edges) + 1,))
-        self._bin_error_up = np.zeros((len(self._bin_edges) + 1,))
-        self._bin_error_dn = np.zeros((len(self._bin_edges) + 1,))
+        self._bin_centre = 0.5 * (self._bin_edge[:-1] + self._bin_edge[1:])
+        self._bin_sumw = np.zeros((self._n_bins,))
+        self._bin_sumw2 = np.zeros((self._n_bins,))
+        self._bin_error_up = np.zeros((self._n_bins,))
+        self._bin_error_dn = np.zeros((self._n_bins,))
         self._bin_error_type = BinErrorType.Normal
 
     def _use_normal_error(self) -> bool:
@@ -142,9 +142,9 @@ class Hist1D(object):
         if value < self._xmin:
             idx = 0
         elif value > self._xmax:
-            idx = len(self._bin_edges)
+            idx = self._n_bins - 1
         else:
-            idx = np.searchsorted(self._bin_edges, value, side="right")
+            idx = np.searchsorted(self._bin_edge, value, side="right")
         self._update_bin_content(idx, weight, weight * weight)
 
     def fill_array(self, values: np.ndarray, weights=None) -> None:
@@ -172,7 +172,7 @@ class Hist1D(object):
     def _debug_data(self) -> Any:
         """Return detailed data hold by the object for debug purpose"""
         data_dict = {
-            "edge": self._bin_edges,
+            "edge": self._bin_edge,
             "centre": self._bin_centre,
             "sumw": self._bin_sumw,
             "sumw2": self._bin_sumw2,
@@ -190,7 +190,7 @@ class Hist1D(object):
         Returns:
             np.ndarray: the underlying data
         """
-        return self._debug_data[spec]
+        return self._debug_data()[spec]
 
     def get_n_bins(self) -> Any:
         return self._n_bins
@@ -213,9 +213,6 @@ class Hist1D(object):
     def get_bin_error_dn(self, i) -> Any:
         return self._bin_error_dn[i]
 
-    def get_bin_centre(self, i) -> Any:
-        return self._bin_centre[i - 1]
-
     # endregion
 
     # region arithmetic
@@ -225,7 +222,7 @@ class Hist1D(object):
         Returns:
             Any: the copied Hist1D object
         """
-        _copy = Hist1D(self._bin_edges)
+        _copy = Hist1D(self._bin_edge)
         _copy._bin_sumw = self._bin_sumw.copy()
         _copy._bin_sumw2 = self._bin_sumw2.copy()
         _copy._bin_error_up = self._bin_error_up.copy()
@@ -251,7 +248,7 @@ class Hist1D(object):
             f"Must have same number of bins, "
             f"however get {n} and {other.get_n_bins()}"
         )
-        for i in range(n + 1):
+        for i in range(n):
             copy._update_bin_content(
                 i, scale * other.get_bin_sumw(i), scale * scale * other.get_bin_sumw2(i)
             )
@@ -275,7 +272,7 @@ class Hist1D(object):
         """
         copy = self.copy()
         n = copy.get_n_bins()
-        for i in range(n + 1):
+        for i in range(n):
             copy._reset_bin_content(
                 i, k * copy.get_bin_sumw(i), k * k * copy.get_bin_sumw2(i)
             )
@@ -297,7 +294,7 @@ class Hist1D(object):
             f"Must have same number of bins, "
             f"however get {n} and {other.get_n_bins()}"
         )
-        for i in range(n + 1):
+        for i in range(n):
             sumw_this, sumw2_this = copy.get_bin_sumw(i), copy.get_bin_sumw2(i)
             sumw_that, sumw2_that = other.get_bin_sumw(i), other.get_bin_sumw2(i)
             prod = sumw_this * sumw_that
@@ -326,7 +323,7 @@ class Hist1D(object):
             f"Must have same number of bins, "
             f"however get {n} and {other.get_n_bins()}"
         )
-        for i in range(n + 1):
+        for i in range(n):
             sumw_this, sumw2_this = copy.get_bin_sumw(i), copy.get_bin_sumw2(i)
             sumw_that, sumw2_that = other.get_bin_sumw(i), other.get_bin_sumw2(i)
             div = 0
@@ -358,7 +355,12 @@ class Hist1D(object):
     def __rmul__(self, other: float) -> Any:
         return self.scale(other)
 
-    def integral(self):
+    def integral(self) -> Tuple:
+        """Get integral and up/down error of the histogram
+
+        Returns:
+            Tuple: integral, up error, down error
+        """
         integral = np.sum(self._bin_sumw)
         error_up, error_dn = self._calculate_error(integral, np.sum(self._bin_sumw2))
         return integral, error_up, error_dn
@@ -366,13 +368,16 @@ class Hist1D(object):
     # endregion
 
     def plot(
-        self, label="", color=None, density=False, underflow=False, overflow=False
+        self, label: str, color: str, density=False, underflow=False, overflow=False
     ) -> None:
         """plotting function
 
+        TODO: plotting with underflow and overflow are not implemented yet
+
         Args:
-            label (str, optional): label displayed in legend. Defaults to "".
-            color (_type_, optional): the color. Defaults to None.
+            label (str): label displayed in legend.
+            color (str): the color.
+            density (bool, optional): plot density or not. Defaults to False.
             underflow (bool, optional): include underflow in the first bin. Defaults to False.
             overflow (bool, optional): include overflow in the last bin. Defaults to False.
         """
@@ -385,13 +390,31 @@ class Hist1D(object):
             bin_content_dn /= integral
             bin_content_up /= integral
             # print(bin_content, bin_content_dn, bin_content_up)
-        hline_data = bin_content, self._bin_edges[:-1], self._bin_edges[1:]
+        hline_data = bin_content, self._bin_edge[:-1], self._bin_edge[1:]
         vline_data = self._bin_centre, bin_content_dn, bin_content_up
         plt.hlines(*hline_data, colors=color, label=label)
         plt.vlines(*vline_data, colors=color)
 
 
-def make_hist1d(arr, nbin, start, end, error_type=BinErrorType.Normal):
+def make_Hist1D(
+    arr: np.ndarray,
+    nbin: int,
+    start: float,
+    end: float,
+    error_type: BinErrorType = BinErrorType.Normal,
+) -> Hist1D:
+    """Helper function to create a hist1d object with unity weight
+
+    Args:
+        arr (np.ndarray): values to fill
+        nbin (int): number of bins
+        start (float): lower bin edge
+        end (float): upper bin edge
+        error_type (BinErrorType, optional): error type. Defaults to BinErrorType.Normal.
+
+    Returns:
+        Hist1D: Hist1D object
+    """
     h = Hist1D(nbin, start, end)
     h.set_error_type(error_type)
     h.fill_array(arr)
