@@ -10,6 +10,16 @@ class EfficiencyInconsistencyError(RuntimeError): ...
 
 class Efficiency1D(object):
     def __init__(self, h_pass: Hist1D, h_total: Hist1D, interval=0.682689492) -> None:
+        """1-D Efficiency
+
+        Args:
+            h_pass (Hist1D): Histogram of passed events
+            h_total (Hist1D): Histogram of total events
+            interval (float, optional): confidence interval. Defaults to 0.683 (1-sigma).
+
+        Raises:
+            EfficiencyInconsistencyError: h_pass and h_total are not consistent in nbins
+        """
         self._h_pass = h_pass
         self._h_total = h_total
         if not self._check_consistency():
