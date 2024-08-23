@@ -55,7 +55,7 @@ class Efficiency1D(object):
         Returns:
             np.ndarray: the underlying data
         """
-        return self._debug_data[spec]
+        return self._debug_data()[spec]
 
     def get_bin_eff(self, i: int) -> Any:
         return self._bin_eff[i]
@@ -74,8 +74,8 @@ class Efficiency1D(object):
     def _calculate_interval(self, total: float, passed: float, eff: float) -> Tuple:
         """Calculate binomial error based on number of total and passed events,
         using Clopper Pearson interval
-
-        TODO: pure binomial interval is possible ?
+        
+        TODO: Force to use gaussian approximation if weighted
 
         Args:
             total (float): number of total events
