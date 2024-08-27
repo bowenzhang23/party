@@ -48,6 +48,7 @@ class Hist1D(object):
         self._bin_error_up = np.zeros((self._n_bins,))
         self._bin_error_dn = np.zeros((self._n_bins,))
         self._bin_error_type = BinErrorType.Normal
+        self._weighted = False
 
     def _use_normal_error(self) -> bool:
         """Check if normal error should be forced to use"""
@@ -131,14 +132,7 @@ class Hist1D(object):
             self._bin_sumw[idx], self._bin_sumw2[idx]
         )
 
-    def fill(self, value: float, weight=None) -> None:
-        """Fill a value with weight to the histogram
-
-        Args:
-            value (float): the value
-            weight (optional): the weight. Defaults to None.
-        """
-        weight = 1.0 if weight is None else weight
+    def _fill(self, value: float, weight: float) -> None:
         if value < self._xmin:
             idx = 0
         elif value > self._xmax:
@@ -146,6 +140,19 @@ class Hist1D(object):
         else:
             idx = np.searchsorted(self._bin_edge, value, side="right")
         self._update_bin_content(idx, weight, weight * weight)
+
+    def fill(self, value: float, weight=None) -> None:
+        """Fill a value with weight to the histogram
+
+        Args:
+            value (float): the value
+            weight (optional): the weight. Defaults to None.
+        """
+        if weight is not None:
+            self._weighted = True
+        else:
+            weight = 1.0
+        self._fill(value, weight)
 
     def fill_array(self, values: np.ndarray, weights=None) -> None:
         """Fill an array of value with an array of weights of the same size
@@ -155,6 +162,7 @@ class Hist1D(object):
             weights (optional): the weights. Defaults to None.
         """
         if weights is not None:
+            self._weighted = True
             assert values.shape == weights.shape, (
                 f"shapes of value and weight array must be identical, "
                 f"however, found {values.shape} and {weights.shape}"
@@ -162,7 +170,7 @@ class Hist1D(object):
         else:
             weights = np.ones_like(values)
         for value, weight in zip(values, weights):
-            self.fill(value, weight)
+            self._fill(value, weight)
 
     def set_error_type(self, error_type: BinErrorType) -> None:
         """Set error type manually"""
@@ -191,6 +199,9 @@ class Hist1D(object):
             np.ndarray: the underlying data
         """
         return self._debug_data()[spec]
+
+    def is_weighted(self) -> bool:
+        return self._weighted
 
     def get_n_bins(self) -> Any:
         return self._n_bins

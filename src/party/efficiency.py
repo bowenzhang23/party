@@ -1,6 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
-from scipy.stats import beta, binom
+from scipy.stats import norm, beta, binom
 from party.histogram import Hist1D
 from typing import Any, Tuple
 
@@ -22,6 +22,7 @@ class Efficiency1D(object):
         """
         self._h_pass = h_pass
         self._h_total = h_total
+        self._weighted = h_pass.is_weighted() or h_total.is_weighted()
         if not self._check_consistency():
             raise EfficiencyInconsistencyError()
         self._n_bins = self._h_pass.get_n_bins()
@@ -70,12 +71,10 @@ class Efficiency1D(object):
         if self._h_pass.get_n_bins() != self._h_total.get_n_bins():
             return False
         return True
-
-    def _calculate_interval(self, total: float, passed: float, eff: float) -> Tuple:
+    
+    def _calculate_clopper_pearson_interval(self, total: float, passed: float, eff: float) -> Tuple:
         """Calculate binomial error based on number of total and passed events,
         using Clopper Pearson interval
-        
-        TODO: Force to use gaussian approximation if weighted
 
         Args:
             total (float): number of total events
@@ -91,19 +90,59 @@ class Efficiency1D(object):
         alpha = 0.5 - self._interval / 2
         # Clopper-Pearson interval
         error_dn = 0.0 if np == 0 else eff - beta.ppf(alpha, np, nt - np + 1)
-        error_up = 1.0 if np == nt else beta.ppf(1 - alpha, np + 1, nt - np) - eff
+        error_up = 0.0 if np == nt else beta.ppf(1 - alpha, np + 1, nt - np) - eff
         return error_up, error_dn
+
+    def _calculate_normal_approximated_interval(self, tw: float, tw2: float, pw: float, pw2: float, eff: float) -> Tuple:
+        """Calculate binomial error based on number of total and passed events,
+        using normal approximation
+
+        Args:
+            tw (float): number of total events
+            tw2 (float): squared sum of weight of total events
+            pw (float): number of passed events
+            pw2 (float): squared sum of weight of passed events
+            eff (float): efficiency
+
+        Returns:
+            Tuple: error (up) and error (down)
+        """
+        if tw == 0:
+            return 0., 0.
+        variance = (pw2 * (1. - 2*eff) + tw2 * eff * eff) / (tw * tw)
+        sigma = np.sqrt(variance)
+        prob = 0.5 + self._interval / 2
+        delta = norm.ppf(prob, 0, sigma)
+        # normal interval ..
+        error_dn = 0.0 if pw == 0 else eff if eff < delta else delta
+        error_up = 0.0 if pw == tw else 1 - eff if 1 - eff < delta else delta 
+        return error_up, error_dn
+
+    def _calculate_interval(self, i: int) -> Tuple:
+        """Calculate binomial error based on number of total and passed events,
+        if weighted, then force to use normal approximation,
+        else if not, then use Clopper-Pearson
+
+        Returns:
+            Tuple: error (up) and error (down)
+        """
+        tw = self._h_total.get_bin_sumw(i)
+        tw2 = self._h_total.get_bin_sumw2(i)
+        pw = self._h_pass.get_bin_sumw(i)
+        pw2 = self._h_pass.get_bin_sumw2(i)
+        eff = self._bin_eff[i]
+        
+        if self._weighted:
+            return self._calculate_normal_approximated_interval(tw, tw2, pw, pw2, eff)
+        else:
+            return self._calculate_clopper_pearson_interval(tw, pw, eff)
 
     def _calculate_efficiency(self) -> None:
         """Calculate the efficiency as well as its up and down errors"""
         h_ratio = self._h_pass.divide(self._h_total)
         self._bin_eff = h_ratio.data("sumw")
         for i in range(self._n_bins):
-            self._bin_error_up[i], self._bin_error_dn[i] = self._calculate_interval(
-                self._h_total.get_bin_sumw(i),
-                self._h_pass.get_bin_sumw(i),
-                self._bin_eff[i],
-            )
+            self._bin_error_up[i], self._bin_error_dn[i] = self._calculate_interval(i)
 
     def plot(self, label: str, color: str, underflow=False, overflow=False) -> None:
         """plotting function
