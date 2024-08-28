@@ -1,5 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib.lines as mlines
 from scipy.stats import norm, beta, binom
 from party.histogram import Hist1D
 from typing import Any, Tuple
@@ -144,7 +145,7 @@ class Efficiency1D(object):
         for i in range(self._n_bins):
             self._bin_error_up[i], self._bin_error_dn[i] = self._calculate_interval(i)
 
-    def plot(self, label: str, color: str, underflow=False, overflow=False) -> None:
+    def plot(self, label: str, color: str, underflow=False, overflow=False) -> Any:
         """plotting function
 
         TODO: plotting with underflow and overflow are not implemented yet
@@ -152,6 +153,9 @@ class Efficiency1D(object):
         Args:
             label (str): label displayed in legend.
             color (str): the color.
+
+        Returns:
+            Any: legend handle
         """
         bin_content = self._bin_eff[1:-1].copy()
         bin_content_dn = bin_content - self._bin_error_dn[1:-1].copy()
@@ -160,3 +164,4 @@ class Efficiency1D(object):
         vline_data = self._bin_centre, bin_content_dn, bin_content_up
         plt.hlines(*hline_data, colors=color, label=label)
         plt.vlines(*vline_data, colors=color)
+        return mlines.Line2D([], [], color=color, marker='|', linestyle='-', markersize=10, label=label)

@@ -1,5 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib.lines as mlines
 from scipy.stats import gamma
 from typing import Any, Tuple
 
@@ -380,7 +381,7 @@ class Hist1D(object):
 
     def plot(
         self, label: str, color: str, density=False, underflow=False, overflow=False
-    ) -> None:
+    ) -> Any:
         """plotting function
 
         TODO: plotting with underflow and overflow are not implemented yet
@@ -391,6 +392,9 @@ class Hist1D(object):
             density (bool, optional): plot density or not. Defaults to False.
             underflow (bool, optional): include underflow in the first bin. Defaults to False.
             overflow (bool, optional): include overflow in the last bin. Defaults to False.
+        
+        Returns:
+            Any: legend handle
         """
         bin_content = self._bin_sumw[1:-1].copy()
         bin_content_dn = bin_content - self._bin_error_dn[1:-1].copy()
@@ -405,6 +409,7 @@ class Hist1D(object):
         vline_data = self._bin_centre, bin_content_dn, bin_content_up
         plt.hlines(*hline_data, colors=color, label=label)
         plt.vlines(*vline_data, colors=color)
+        return mlines.Line2D([], [], color=color, marker='|', linestyle='-', markersize=10, label=label)
 
 
 def make_Hist1D(
